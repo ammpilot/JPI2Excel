@@ -1,0 +1,166 @@
+REVISION: 5
+REVISION DATE: 2026-09-29
+
+This specification supersedes older tentative output layouts.
+
+FLAGS:
+
+--list: List all flights, with flight number, start date and time, duration. State whether GPS info
+is available (“GPS” or “No GPS”). List flights <5 minutes long at the end, otherwise sort by flight
+number.
+
+--info: Provide info about the file. Show “header” info in file: aircraft ID ($U field), download
+datetime, rated HP, recording interval, temperature units, fuel units, alarm levels, number of
+flights recorded in file minimum specified duration (use 5 minutes as default), number of flights
+total. Each field should be labeled in the output. Each datum should be on its own line in the
+stdout output, with a label followed by a colon and a space, then the datum. (For alarms such has
+battery voltage, divide the data from the JPI file by 10, so that 305 would show as 30.5.)
+
+--validate: validate structure, ASCII checksums, binary flight-header/record checksums, and boundaries.
+
+--csv: Extract selected flights to CSV. One output file per flight.
+
+--flights: all (default), comma-separated flight numbers, or inclusive ranges FlightX:FlightY.
+Combinations such as 393,395:398 are accepted across the combined collection of input files.
+
+--xls: Extract all selected flights from all valid input files to one XLSX workbook, one sheet per
+flight, plus a Summary sheet with instrument and flight information (same data as --info).
+
+--xls-separate: Extract to one XLSX workbook per selected flight, no summary sheet, just flight data.
+
+--engine: which engine’s data to extract. Default is all, otherwise left, right, or an engine
+number may be provided. Multiple engines may be specified as a comma-separate flag argument (e.g.,
+1,3). An engine with data not in the file results in an error. If only one engine’s data are in the
+file, any specification for one engine (by number or position) is acceptable, as is all. Two
+engines shall be called left, right or 1, 2; three engines shall be called left, center, right or
+1, 2, 3; four engines or more engines shall be by number.
+
+--output: output file name. If multiple output files are to be created, this is an error.
+
+--output-dir: output file directory when multiple flights are processed.
+
+--minimum-duration: minimum flight duration in MINUTES (default 5). Exactly-at-minimum qualifies.
+Explicitly selecting a flight below the minimum is an error. An all-flights selection skips short
+flights. Listing always includes all flights, with flights shorter than five minutes last.
+
+--verbose: provide additional output during run or on completion, such as number of flights, number
+of flights skipped (because of short duration) if any, number of cylinders, number of
+turbochargers, length of each flight in hh:mm:ss.
+
+--version: print version info.
+
+--help: print usage info.
+
+ARGUMENTS:
+
+Arguments after the last flag specify input filenames. Multiple files should be supported, and the
+action directive (--xls, --xls-separate, etc.) applies to the entire collection of flights in all the
+files combined.
+
+There is no default action directive. --info is an action and may be used alone or together
+with one other action. Otherwise only one of --csv, --xls, --xls-separate, --validate, --list,
+--version, or --help may be provided. --info does not allow two of those other actions.
+
+--flights filters the per-flight details printed by --info; file properties, raw headers,
+alarms, total-flight counts, and qualifying-flight counts still describe the entire file.
+Info may inspect short flights regardless of the export cutoff. Explicitly selecting a short
+flight for an export remains an error. Info is printed before listing, validation results, or
+exporting. Adding --info does not change those actions' existing behavior: listing includes
+all flights, validation checks the whole file, and workbook Summary includes all file metadata.
+Flight/engine selection is valid with --info or an export; output paths require an export.
+With --info --help or --info --version, print help/version first and then info if input files
+are provided. Without inputs, just print help/version.
+
+Excel files should have each sheet with first line and first two columns frozen (header lines).
+Columns should be sample number, DeltaT, datetime, MAP, RPM, EGTs, TITs, CHTs, fuel flow, %HP, OAT,
+CDT, IAT, OILP, OILT, BAT, USD, MARK, DIF, CLD, Limits. For OILP, use Oil P as the column label; for
+OILT, use Oil T; for Bat, Batt; for USD, Used; for DIF, Diff, for CLD, Cold. For each of the EGTs,
+use, e.g., EGT 1, EGT 2, etc.; similarly for CHTs and TITs (though if there’s only one TIT, just
+label it TIT rather than TIT 1, but if there are multiple TITs recorded, use TIT 1, TIT 2, etc. For
+the Limits column, provide a semicolon-separated list of all items exceeding the limit set in the
+metadata for that item (e.g., MAP;FF would should that MAP [manifold pressure] and FF [fuel flow]
+exceeded limits. For anything with both high and low limits, append -H or -L, respectively, to the
+value).
+
+Place no inherent limits on the number of cylinders or turbochargers. Get that information from the
+input file header.
+
+EXIT CODES:
+
+Exit codes should use errno codes whenever they make sense. If there is no corresponding errno
+code, use program-specific and case-specific codes starting at 200. Do not exceed 255: coalesce
+exit conditions as necessary.
+
+Exit codes (use others that are appropriate, too):
+	- ENOENT: source file not found, destination directory not found
+	- EPERM: unable to read source or to write destination
+	- EEXIST: dest file exists
+	- ENOTDIR: destination not a directory (multiple file output)
+	- EISDIR: dest file is directory
+	- EINVAL: argument not recognized
+	- ECANCELED: caught SIGINT or SIGTERM (before end of program); note: be sure to clean up any
+		temp files, but leave partial output file.
+	- EDOM: flight specified not found in input file.
+	- EILSEQ: input file is corrupted.
+	- EOPNOTSUPP: no recognized action directive.
+
+APPROVED OUTPUT AND FAILURE DETAILS:
+
+Source code goes in src/jpi2excel, utilities in pgms, tests in tests. The original testdata
+fixtures are intentionally included in Git. Keep the sibling ../JPI-Parser repository unchanged.
+
+Sample numbering starts at 1. DeltaT MUST be numeric elapsed SECONDS since flight start.
+Use actual datetime cells in Excel, source-clock timezone-naive values, and ISO-style CSV text.
+Freeze the header row and the first two columns (C2). Do not enable autofilters or add cell
+comments. Display Excel datetimes through seconds, without milliseconds; preserve stored values.
+Flight column widths in pixels, assigned by data meaning rather than fixed column letters:
+Sample 60; DeltaT 55; DateTime 115; sensor/navigation values 55; Limits 120.
+Summary widths in pixels: Source 85; Input 50; Property 225; Value 450. Wrap the Value column.
+Input is the one-based ordinal of each successfully read source file in input order, allowing
+repeated inputs or sources with identical basenames to be distinguished; it is not a flight ID.
+Excel character-width conversion is calibrated to the supplied macOS Calibri 11 reference
+workbook (approximately six pixels per stored width unit). Other fonts/viewers may render
+slightly differently.
+
+The final navigation columns, after Limits, are LAT -> Lat, LNG -> Lon, ALT -> Alt, SPD -> Speed.
+Omit absent channels, but retain blank columns and issue warnings for header-declared channels
+without values. Reconstruct unchanged initialized sensors rather than outputting blanks.
+
+Identify individual violating channels in Limits, e.g. CHT 3;TIT 2;BAT-L. Evaluate only thresholds
+actually present; do not invent absent limits. Equality to a threshold is not a violation.
+
+Both --info and Summary include explicit file properties and derivable configuration: cylinder
+count, IAT/CDT presence, TIT channel count, recording interval, rated HP, enabled channels, and
+navigation availability. Preserve per-flight differences. Include engine/OAT temperature units,
+fuel units, raw header properties, parser/program versions, source filenames, and warnings.
+Keep units in info/Summary output; do not add header comments. Do not equate TIT count with physical turbocharger
+count without supporting metadata. Preserve unknown properties as raw fields rather than guesses.
+
+Initially support the validated legacy single-engine layout. Plan for multi-engine formats,
+including ones upstream does not decode. Unsupported layouts must fail explicitly.
+
+A structural or checksum error rejects the whole affected input before exporting any of its
+flights. Continue with other files. Exit status must report EILSEQ if any input was corrupt,
+even when other files succeed or a separate output error occurs.
+
+Preserve duplicate flight numbers across files with a non-fatal warning. Assign distinct output
+filenames and worksheet names; retain source attribution. No automatic deduplication.
+
+Document output naming defaults in --help. Default combined name is JPI2Excel.xlsx. Separate names are <source-stem>_Flight_<number>.csv or
+.xlsx, with numeric suffixes for batch naming collisions. Existing destinations are errors, never
+overwritten. --output and --output-dir are mutually exclusive. Output directories must exist.
+
+An all-flights selection with no qualifying flights creates no output and reports that fact;
+it succeeds unless another input failed. Program-specific exit code 201 identifies an explicitly
+selected short flight; 200 identifies an uncategorized application/dependency error. Use EFBIG
+when a flight exceeds Excel's row limit, and EOPNOTSUPP for unsupported formats.
+
+
+LEGACY PHYSICAL BLOCK FRAMING (REVISION 3):
+
+For the supported legacy format, $D entries allocate logical flight bytes and $L
+counts physical 256-byte blocks. Require $L == ceil(logical_bytes / 256) and $E
+at data_start + $L * 256. Decode only $D-allocated bytes. Accept the unused final
+block space regardless of its contents; it must never produce additional samples.
+Incorrect framing and checksums remain errors. Include logical/physical lengths,
+boundaries, block count, and slack length/nonzero status in --info and Summary.

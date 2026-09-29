@@ -1,0 +1,14 @@
+# Revision: 1
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+*.xlsx
+*.csv
+build/
+dist/
+*.egg-info/
+*.swp
+*.swo
+data/

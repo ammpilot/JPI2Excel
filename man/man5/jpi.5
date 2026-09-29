@@ -1,0 +1,306 @@
+.\" Revision: 1
+.TH JPI 5 "September 29, 2026" "JPI2Excel 0.1.0" "File Formats"
+.SH NAME
+jpi \- JP Instruments engine-monitor download format
+.SH DESCRIPTION
+Files conventionally named with a
+.B .JPI
+extension contain engine-monitor configuration and compressed flight records.
+This page describes the legacy EDM-700/800 family supported by JPI2Excel,
+based on the project's fixtures and reverse-engineered JPI-Parser material.
+It is not an official JP Instruments binary-format specification.
+.PP
+The three current fixtures record model code 700 and software value 306.
+One is known to originate from an EDM-800.
+The recorded model code is authoritative and is not rewritten to match
+an externally reported instrument model.
+.PP
+Later JPI formats differ and may include protocol records, GPS channels,
+configuration XML, and version trailers.
+Do not apply the legacy framing below unconditionally to other layouts.
+.SH LEGACY FILE LAYOUT
+.nf
+ASCII dollar-record header, ending with $L and CRLF
+binary area of exactly ($L value * 256) bytes
+    declared flight allocations from $D entries
+    unused space in the final physical block
+$E,4*5D followed by CRLF
+end of file
+.fi
+.PP
+Let
+.I data_start
+be the zero-based byte offset immediately after the CRLF ending the
+.B $L
+record.
+All end offsets in this page are exclusive.
+The current legacy fixtures have no bytes after the end marker.
+.SH ASCII RECORDS
+Each header record has the form:
+.PP
+.nf
+$tag,field1,field2,...*HH\er\en
+.fi
+.PP
+Here
+.B HH
+is a two-digit hexadecimal checksum.
+XOR all bytes between the leading dollar sign and the asterisk, excluding
+both delimiters, and compare with the checksum.
+CRLF terminates the record.
+Spaces in numeric fields are significant to the checksum even though
+numeric conversion may ignore them.
+.PP
+The supported legacy header requires
+.BR $U ,
+.BR $A ,
+.BR $F ,
+.BR $T ,
+.BR $C ,
+one or more
+.B $D
+entries, and a terminating
+.B $L
+record.
+.SS "$U: identifier"
+Aircraft, device, or user identification text.
+It can contain an aircraft registration.
+Preserve it as recorded.
+.SS "$A: alarm settings"
+The eight legacy numeric fields are interpreted in this order:
+.PP
+.nf
+Field  Meaning                         Example
+1      High battery voltage, tenths V  305 = 30.5 V
+2      Low battery voltage, tenths V   240 = 24.0 V
+3      High EGT differential (DIF)     500
+4      High CHT                       400
+5      Cooling-rate magnitude (CLD)   200
+6      High TIT                       1700
+7      High oil temperature           220
+8      Low oil temperature             95
+.fi
+.PP
+The example temperature thresholds are Fahrenheit; the cooling-rate threshold
+has the semantic value \-200 degrees per minute.
+Use file-specific units when interpreting a download.
+The eight-field layout does not establish MAP, fuel, or oil-pressure alarm
+thresholds; absent thresholds must not be supplied from assumed defaults.
+.SS "$F: fuel configuration"
+The first field selects fuel units.
+Code 0 denotes U.S. gallons, with gallons per hour for fuel flow, in the
+supported family.
+Other fields are preserved as raw configuration.
+Current JPI2Excel decoding rejects unvalidated fuel-unit codes.
+.SS "$T: download timestamp"
+Six fields give month, day, two-digit year, hour, minute, and packed
+seconds/milliseconds.
+For final field
+.IR n :
+.PP
+.nf
+seconds      = n // 1000
+milliseconds = n % 1000
+.fi
+.PP
+Years below 75 map to 2000 through 2074; 75 through 99 map to 1975 through 1999
+in the current decoder.
+For example, the fields
+.B 9,19,26,20,48,4795
+represent 2026-09-19 20:48:04.795.
+This is the download time, not a substitute for a flight start time.
+No timezone is invented.
+.SS "$C: system configuration"
+Carries model code, configuration words, and software information.
+The current legacy layout has five numeric fields, for example:
+.PP
+.nf
+$C, 700,63741,32689, 1556, 306*4B
+.fi
+.PP
+Configuration bits affect units and enabled sensors.
+Engine-temperature and outside-air-temperature units can differ.
+The recorded model code and software value also select binary checksum behavior.
+.SS "$D: flight directory"
+Each entry describes one flight allocation:
+.PP
+.nf
+$D,flight_id,halfsize*HH
+flight_block_bytes = halfsize * 2
+.fi
+.PP
+The size is in 16-bit words.
+Each allocation contains its flight header, compressed records, and possibly
+one final byte of word-alignment padding.
+Flight allocations occur in directory order.
+Duplicate flight IDs within one file are rejected by the current parser;
+IDs repeated across separate input files are preserved.
+.SS "$L: physical block count"
+Terminates the ASCII header.
+For the validated legacy family, its numeric value counts physical 256-byte
+blocks, not flights, bytes, or samples.
+.SS "$E: end marker"
+The current legacy end marker is:
+.PP
+.nf
+$E,4*5D\er\en
+.fi
+.PP
+It starts at the physical end calculated from
+.BR $L .
+The numeric 4 is not used as a flight count.
+Its ASCII checksum is validated independently.
+.SH LOGICAL AND PHYSICAL BOUNDARIES
+Calculate:
+.PP
+.nf
+logical_length  = 2 * sum(all $D halfsize values)
+logical_end     = data_start + logical_length
+block_count     = $L value
+physical_length = block_count * 256
+physical_end    = data_start + physical_length
+slack_length    = physical_end - logical_end
+.fi
+.PP
+The supported legacy framing requires:
+.PP
+.nf
+block_count == (logical_length + 255) // 256
+$E starts at physical_end
+0 <= slack_length < 256
+.fi
+.PP
+Decode flights only within their directory allocations, ending at
+.IR logical_end .
+Do not scan forward for a replacement end marker if the marker is missing
+at the expected physical boundary.
+.SS "Final-block slack"
+The bytes in
+.B [logical_end, physical_end)
+belong to no declared flight.
+They may be nonzero and may contain fragments or complete records with valid
+checksums.
+Their contents do not create additional samples and are not subject to
+flight-record checksum validation.
+.PP
+These bytes are distinct from a possible one-byte pad inside a
+.B $D
+allocation.
+The former fill out the final physical block; the latter is included in a
+flight's word-counted allocation.
+.PP
+Record-shaped slack is consistent with stale contents in a reused storage
+or download buffer.
+That explanation is an inference; the exact mechanism and original source
+of the bytes remain unknown.
+A checksum-valid orphan record lacks the preceding delta state needed to
+assign reliable sensor values or timestamps.
+.SS "Fixture evidence"
+The following decimal offsets and lengths are measured from the original files:
+.PP
+.nf
+File          data_start  logical bytes  $L   $E offset  slack
+U260731.JPI          194          78904  309       79298    200
+U260828.JPI          308         129340  506      129844    196
+U260919.JPI          232          94240  369       94696    224
+.fi
+.PP
+All three satisfy the block-count and physical-end relationships exactly.
+.SH BINARY FLIGHTS
+The supported legacy flight header is 15 bytes.
+Multi-byte header words are big-endian.
+.PP
+.nf
+Offset  Size  Field
+0       2     Flight ID
+2       2     First sensor/configuration word
+4       2     Second sensor/configuration word
+6       1     Fuel-unit code
+7       1     Rated horsepower setting
+8       2     Recording interval in seconds
+10      2     Packed flight date
+12      2     Packed flight time
+14      1     Header checksum
+.fi
+.PP
+Sensor-enable bits identify monitored EGT, CHT, TIT, and other channels.
+Counts derived from these bits describe recorded channels; TIT count alone
+does not establish the number of physical turbochargers.
+The packed date/time is decoded using the legacy rules of the pinned decoder.
+Midnight is valid; invalid timestamps must not be replaced with download time.
+.PP
+Compressed records are variable length.
+In the legacy eight-bit layout, a record begins with two matching mask bytes
+and a repeat-count byte, followed by mask-selected control bytes, sign bytes,
+delta magnitudes, and a checksum byte.
+The masks and controls determine the record length.
+.PP
+Sensor values are reconstructed by adding signed deltas to accumulated state
+and applying channel-specific scaling.
+Unchanged initialized channels retain their values.
+Repeated samples replay the previous values before the new record is applied.
+The recording interval determines elapsed seconds; MARK transitions can select
+one-second fast recording and restore the configured interval.
+.PP
+Do not interpret compressed bytes as fixed-width table rows or decode an
+isolated record without its preceding state.
+.SH BINARY CHECKSUMS
+For legacy model 700 with software at least 296, or model 800 with software
+at least 300, the decoder uses an additive modulo-256 checksum.
+The sum of the entire header or complete record, including its checksum byte,
+must be zero modulo 256.
+Older supported branches use XOR, which must also produce zero over the
+complete header or record.
+.PP
+The current fixtures use the additive branch.
+Both header and record checksums remain mandatory inside declared flights.
+Neither the one-byte word pad nor final-block slack is a separate
+checksummed flight record.
+.SH UNITS AND OPTIONAL CHANNELS
+Units come from file configuration and channel-specific rules.
+Examples include manifold pressure in tenths of inches of mercury, battery
+voltage in tenths of volts, and U.S.-gallon fuel flow in tenths of
+gallons per hour.
+Engine and outside-air temperature units need not match.
+.PP
+Later layouts can contain latitude, longitude, altitude, and speed, often
+identified as LAT, LNG, ALT, and SPD.
+They must not be synthesized when absent.
+Twin-capable formats use engine-specific channels on a shared flight timeline.
+These later and multi-engine layouts are outside current decoding support.
+.SH VALIDATION
+JPI2Excel rejects malformed required metadata, inconsistent block counts,
+a missing or misplaced end marker, invalid flight boundaries, and bad
+ASCII or binary checksums.
+Nonzero slack that satisfies the physical framing is accepted.
+Only declared flight samples are exported.
+.PP
+The 256-byte rule is validated from the supplied legacy family.
+Its applicability to all other firmware versions, models, or later protocols
+has not been established.
+.SH FILES
+.TP
+.B testdata/*.JPI
+Original regression fixtures.
+.TP
+.B docs/JPI-Format.md
+Detailed project format notes.
+.TP
+.B docs/JPI-Trailing-Data-Summary.md
+Conclusions about physical block framing and slack.
+.TP
+.B docs/JPI-Trailing-Data-Details.md
+Boundary arithmetic and supporting evidence.
+.TP
+.B docs/ExtraTrailingData.md
+Historical investigation and subsequent resolution.
+.SH SEE ALSO
+.BR jpi2excel.sh (1)
+.SH REFERENCES
+The MIT-licensed unicornlines/JPI-Parser project supplies the decoding layer
+and reverse-engineered format material.
+JPI2Excel pins commit
+.BR e1a34c37d3cc2194699faba92e6666300cb85e86 .
+.PP
+J.P. Instruments' EDM-700/800/711 Pilot's Guide, Revision W, supplies
+user-visible alarm semantics; it is not a binary-format specification.

@@ -1,0 +1,20 @@
+# Revision: 1
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jpi2excel"
+version = "0.1.0"
+description = "Validate and export JP Instruments legacy EDM downloads to CSV and XLSX"
+requires-python = ">=3.10"
+dependencies = [
+  "jpi-analyzer @ git+https://github.com/unicornlines/JPI-Parser.git@e1a34c37d3cc2194699faba92e6666300cb85e86",
+  "openpyxl==3.1.5",
+]
+
+[project.scripts]
+jpi2excel = "jpi2excel.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

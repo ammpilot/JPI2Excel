@@ -1,0 +1,331 @@
+.\" Revision: 3
+.TH JPI2EXCEL.SH 1 "September 29, 2026" "JPI2Excel 0.1.0" "User Commands"
+.SH NAME
+jpi2excel.sh \- validate JP Instruments downloads and export CSV or Excel
+.SH SYNOPSIS
+.B jpi2excel.sh
+.RB [ \-\-info ]
+.I action
+.RI [ options ]
+.IR file.JPI " ..."
+.br
+.B jpi2excel.sh \-\-info
+.RI [ options ]
+.IR file.JPI " ..."
+.br
+.B jpi2excel.sh \-\-help
+.br
+.B jpi2excel.sh \-\-version
+.SH DESCRIPTION
+.B jpi2excel.sh
+is a Bash wrapper for the JPI2Excel Python command-line program.
+It locates
+.B jpi2excel.py
+in its own directory and runs it with
+.B python3
+from PATH, forwarding arguments and preserving the Python program's exit status.
+It does not change the caller's working directory.
+Relative input and output paths are relative to that directory.
+.PP
+At least one action is required.
+.B \-\-info
+may run alone or alongside one other action.
+All other actions are mutually exclusive; adding
+.B \-\-info
+does not permit two other actions.
+Input files are processed as a collection of flights.
+A corrupt file is rejected in its entirety before any of its flights are
+exported; processing continues for other inputs.
+Duplicate flight numbers across files are retained, with a nonfatal warning
+and distinct output names.
+.PP
+Current decoding supports legacy single-engine EDM-700/800 layouts with
+fuel-unit code 0 (U.S. gallons), an eight-field alarm record, and no protocol
+record.
+Other models, multi-engine layouts, and unvalidated formats fail explicitly.
+The recorded model code is preserved, including code 700 in EDM-800 downloads.
+.SH ACTIONS
+.TP
+.B \-\-info
+Print labeled file and flight properties, one per line, in the form
+.IR "Label: value" .
+Include identifiers, download time, units, alarms, raw header fields,
+flight counts, and per-flight configuration such as recording interval,
+rated horsepower, monitored-cylinder count, IAT/CDT presence, and TIT count.
+Also report logical and physical binary boundaries and final-block slack.
+TIT channel count is not assumed to equal physical turbocharger count.
+.B \-\-flights
+limits the per-flight details; file properties, raw headers, alarms, and counts
+still describe the entire input file.
+Short flights may be inspected regardless of the export duration cutoff.
+.PP
+Info is printed before listing, validation results, or export work.
+The accompanying action retains its own behavior: listing includes every
+flight, validation checks complete files, and workbook Summary remains complete.
+When paired with
+.B \-\-help
+or
+.BR \-\-version ,
+help/version is printed first, followed by info if input files were supplied.
+Without input files, only help/version is printed.
+.TP
+.B \-\-list
+List every flight's source, number, start date and time, duration, and
+.B GPS
+or
+.BR "No GPS" .
+Sort by flight number, placing flights shorter than five minutes last.
+The five-minute listing split does not change with
+.BR \-\-minimum-duration .
+.TP
+.B \-\-validate
+Validate ASCII checksums, binary flight headers and records, directory
+allocations, physical block framing, and the end marker.
+Valid unused bytes in the final physical block are accepted and excluded
+from flight decoding; see
+.BR jpi (5).
+.TP
+.B \-\-csv
+Write one CSV file per selected flight.
+.TP
+.B \-\-xls
+Write one XLSX workbook containing all selected flights from all valid
+inputs, one worksheet per flight, and a Summary sheet.
+Summary contains the file and flight properties available through
+.BR \-\-info ,
+including properties of flights excluded from the export selection.
+The output is modern XLSX, despite the option's spelling.
+.TP
+.B \-\-xls-separate
+Write one XLSX workbook per selected flight, containing only its flight
+worksheet and no Summary sheet.
+.TP
+.B \-\-help
+Print usage and options; no input is required.
+.TP
+.B \-\-version
+Print the program version; no input is required.
+.SH OPTIONS
+.TP
+.BI \-\-flights " selection"
+Select
+.B all
+(the default), comma-separated flight numbers, inclusive colon-separated
+ranges, or a combination such as
+.BR 393,395:398 .
+Numbers must be in the range 0 through 65535.
+Selection applies across the input collection; all occurrences of a matching
+number are selected.
+A requested flight not found in valid inputs is an error.
+.TP
+.BI \-\-engine " engine"
+Default:
+.BR all .
+For the supported single-engine installation,
+.BR left ,
+.BR center ,
+.BR right ,
+or any one positive engine number selects that engine.
+Requesting multiple engines is an error in this release.
+.TP
+.BI \-\-minimum-duration " minutes"
+Set the minimum export duration and the qualifying-flight count for
+.BR \-\-info .
+The argument is a finite nonnegative number of minutes, including fractions;
+the default is 5.
+A flight exactly at the threshold qualifies.
+An all-flights selection skips shorter flights.
+Explicitly selecting a shorter flight is an error;
+use 0 to include all durations.
+Listing still includes every flight.
+.TP
+.BI \-\-output " path"
+Specify the output path when exactly one output file will be created.
+Mutually exclusive with
+.BR \-\-output-dir .
+Existing destinations are never overwritten.
+.TP
+.BI \-\-output-dir " directory"
+Specify an existing output directory.
+The default is the current directory.
+.TP
+.B \-\-verbose
+Write additional flight configuration, duration, and export/skip counts to
+standard error.
+.PP
+Flight and engine selection apply to
+.B \-\-info
+and export actions.
+Output-path options require an export action.
+Use
+.B \-\-
+to separate options from input filenames beginning with a hyphen.
+.SH OUTPUT
+Default combined workbook name:
+.BR JPI2Excel.xlsx .
+Separate files use
+.I source-stem_Flight_number.csv
+or
+.IR source-stem_Flight_number.xlsx .
+Numeric suffixes distinguish collisions within a batch.
+Existing destinations cause an error.
+An all-flights selection with no qualifying flights creates no output and
+succeeds unless another input failed.
+.PP
+CSV and flight worksheets have this column order, omitting absent sensors:
+.PP
+.nf
+Sample, DeltaT, DateTime, MAP, RPM, EGTs, TITs, CHTs,
+FF, %HP, OAT, CDT, IAT, Oil P, Oil T, Batt, Used,
+MARK, Diff, Cold, Limits, Lat, Lon, Alt, Speed
+.fi
+.PP
+Sample numbering begins at 1.
+.B DeltaT is numeric elapsed seconds since flight start.
+It is never elapsed minutes or an Excel fraction of a day.
+Timestamps preserve source-clock values without an invented timezone.
+Excel stores actual datetime cells displayed through seconds, without
+milliseconds; CSV stores ISO-style text.
+.PP
+Cylinder labels are
+.BR "EGT 1" ,
+.BR "CHT 1" ,
+and so on.
+A single TIT channel is labeled
+.BR TIT ;
+multiple channels are labeled
+.BR "TIT 1" ,
+.BR "TIT 2" ,
+and so on.
+Available navigation columns are last.
+Header-declared channels without decoded values retain blank columns and
+produce warnings.
+Unchanged initialized sensor readings retain their reconstructed values.
+.PP
+.B Limits
+contains semicolon-separated violations of thresholds present in the file,
+for example
+.BR "CHT 3;TIT 2;BAT-L" .
+Parameters with both high and low thresholds use
+.B \-H
+or
+.B \-L
+suffixes.
+Equality to a threshold is not a violation.
+Missing thresholds are not invented.
+.PP
+Excel sheets freeze row 1 and columns A and B (cell C2).
+Autofilters and cell comments are disabled.
+Source units and configuration appear in info/Summary output.
+.PP
+Flight-column widths follow their data: Sample 60 pixels, DeltaT 55,
+DateTime 115, sensor/navigation values 55, and Limits 120.
+These widths follow the columns when channels are omitted or added.
+Excel character-width settings are calibrated to the supplied macOS
+Calibri 11 reference workbook; rendering can vary with font and viewer.
+.PP
+Summary columns Source, Input, Property, and Value use widths of 85, 50,
+225, and 450 pixels respectively.
+The Value column wraps text.
+Input is the one-based number of each successfully read source in input order.
+It distinguishes repeated inputs or files sharing the same basename;
+it is not a flight number.
+A flight may contain at most 1,048,575 data rows in an Excel worksheet;
+use CSV if that limit is exceeded.
+.SH EXIT STATUS
+Zero indicates success; warnings are nonfatal.
+Most failures use the platform's numeric
+.B errno
+value, which may differ between operating systems.
+.TP
+.B ENOENT
+Source or destination directory not found.
+.TP
+.B EPERM
+Permission denied reading input or writing output.
+.TP
+.B EEXIST
+Destination already exists.
+.TP
+.B ENOTDIR
+Destination directory or parent is not a directory.
+.TP
+.B EISDIR
+A file path names a directory.
+.TP
+.B EINVAL
+Invalid, incompatible, or missing arguments.
+.TP
+.B ECANCELED
+Interrupted by SIGINT or SIGTERM.
+Any partial output file is retained.
+.TP
+.B EDOM
+Requested flight or engine is unavailable.
+.TP
+.B EILSEQ
+Invalid input structure or checksum.
+This status takes precedence over other batch failures, even if valid inputs
+were exported successfully.
+.TP
+.B EOPNOTSUPP
+No action was specified, or the input format is unsupported.
+.TP
+.B EFBIG
+A flight exceeds the Excel row limit.
+.TP
+.B 200
+Uncategorized application or missing-dependency error.
+.TP
+.B 201
+An explicitly selected flight is shorter than the minimum duration.
+.SH EXAMPLES
+From the repository root:
+.PP
+.nf
+\&./pgms/jpi2excel.sh \-\-list testdata/U260919.JPI
+\&./pgms/jpi2excel.sh \-\-validate testdata/*.JPI
+\&./pgms/jpi2excel.sh \-\-info \-\-flights 418 testdata/U260919.JPI
+.fi
+.PP
+Export selected flights, including the short flight 417:
+.PP
+.nf
+\&./pgms/jpi2excel.sh \-\-info \-\-csv \-\-flights 415:418 \e
+    \-\-minimum-duration 0 \-\-output-dir /existing/output \e
+    testdata/U260919.JPI
+.fi
+.PP
+Create a combined workbook using the default five-minute cutoff:
+.PP
+.nf
+\&./pgms/jpi2excel.sh \-\-xls \-\-output flights.xlsx \e
+    testdata/U260731.JPI testdata/U260828.JPI
+.fi
+.SH FILES
+.TP
+.B pgms/jpi2excel.sh
+Bash launcher; requires Bash and Python 3.10 or later.
+.TP
+.B pgms/jpi2excel.py
+Python entry point next to the wrapper.
+.TP
+.B src/jpi2excel/
+Application source.
+.TP
+.B ../JPI-Parser/
+Optional read-only sibling dependency used by the development launcher
+when JPI-Parser is not installed.
+It must match the clean pinned revision.
+.PP
+The selected Python environment requires JPI-Parser and
+.BR openpyxl .
+The wrapper does not activate a virtual environment; activate one before
+invoking it if needed.
+.SH SEE ALSO
+.BR bash (1),
+.BR jpi (5)
+.PP
+Project documentation:
+.BR docs/PgmSpec.txt ,
+.BR README.md .
