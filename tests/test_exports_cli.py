@@ -1,4 +1,4 @@
-"""Revision: 5. Export contracts and complete command-line behavior."""
+"""Revision: 8. Export contracts and complete command-line behavior."""
 from contextlib import redirect_stdout, redirect_stderr
 import csv
 import errno
@@ -35,7 +35,7 @@ class ExportTests(unittest.TestCase):
         for code in ('SPD', 'LAT', 'LNG', 'ALT'):
             self.flight.series[code] = [None] * 5
         cols = headers(self.flight)
-        self.assertEqual(cols[:7], ['Sample','DeltaT','DateTime','MAP','RPM','EGT 1','EGT 2'])
+        self.assertEqual(cols[:7], ['Sample','Delta T','DateTime','MAP','RPM','EGT 1','EGT 2'])
         self.assertEqual(cols[-5:], ['Limits', 'Lat', 'Lon', 'Alt', 'Speed'])
         self.assertIn('TIT', cols)
         self.assertNotIn('TIT 1', cols)
@@ -43,6 +43,29 @@ class ExportTests(unittest.TestCase):
         self.assertIn('Cold', cols)
         self.assertIn('Oil P', cols)
         self.assertIn('Oil T', cols)
+        self.assertIn('% HP', cols)
+        self.assertIn('Mark', cols)
+
+    def test_verbose_counts_for_original_four_flight_input(self):
+        target = self.directory / 'verbose.xlsx'
+        code, _, err = self.invoke('--verbose','--xls','--output',target,FIXTURES/'U260919.JPI')
+        self.assertEqual(code, 0, err)
+        self.assertIn('Exported 3 flights to 1 file\n', err)
+        self.assertIn('Skipped 1 flight below minimum duration\n', err)
+        self.assertIn('U260919.JPI: 4 flights\n', err)
+        self.assertIn('Flight 415: 6 cylinders; 1 TIT channel; duration 00:24:06\n', err)
+
+    def test_verbose_singular_configuration_and_zero_channel_count(self):
+        self.flight.series = {'E1': [250] * 5, 'C1': [300] * 5}
+        target = self.directory / 'single.xlsx'
+        with patch('jpi2excel.reader.read_jpi', return_value=self.download):
+            code, _, err = self.invoke('--verbose','--xls','--minimum-duration','0',
+                                       '--output',target,self.input)
+        self.assertEqual(code, 0, err)
+        self.assertIn('Exported 1 flight to 1 file\n', err)
+        self.assertIn('Skipped 0 flights below minimum duration\n', err)
+        self.assertIn('a.JPI: 1 flight\n', err)
+        self.assertIn('Flight 415: 1 cylinder; 0 TIT channels;', err)
 
     def test_absent_channel_omitted_declared_blank_retained(self):
         self.flight.series.pop('CDT')
@@ -110,10 +133,24 @@ class ExportTests(unittest.TestCase):
         self.addCleanup(workbook.close)
         sheet = workbook['Flight 415']
         for cell in sheet[1]:
-            expected = {'Sample':60,'DeltaT':55,'DateTime':115,'Limits':120}.get(cell.value,55)
+            narrow = {'FF', '% HP', 'OAT', 'CDT', 'IAT', 'Oil P', 'Oil T', 'Batt',
+                      'Used', 'Mark', 'Diff', 'Cold'}
+            expected = 53 if cell.value in narrow or cell.value.startswith('CHT ') else {
+                'Sample':50,'Delta T':44,'DateTime':115,'Limits':125}.get(cell.value,55)
             self.assertAlmostEqual(sheet.column_dimensions[cell.column_letter].width * 6, expected, delta=1)
         self.assertIsNone(sheet.auto_filter.ref)
         self.assertTrue(all(cell.comment is None for cell in sheet[1]))
+
+    def test_opening_window_geometry_in_combined_and_separate_workbooks(self):
+        for visible_summary in (True, False):
+            target = self.directory / f'window-{visible_summary}.xlsx'
+            write_xlsx(target, [(self.flight,self.download)], [self.download], 0,
+                       summary=visible_summary)
+            workbook = load_workbook(target)
+            self.addCleanup(workbook.close)
+            view = workbook.views[0]
+            self.assertEqual((view.xWindow, view.yWindow, view.windowWidth, view.windowHeight),
+                             (4280, 2700, 32360, 18380))
 
     def test_metadata_is_literal_text(self):
         self.download.metadata['Aircraft ID'] = '=1+1'
@@ -178,7 +215,9 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(code, 0)
         for name in ['a_Flight_415.xlsx', 'b_Flight_415.xlsx']:
             book = load_workbook(self.directory / name)
-            self.assertEqual(book.sheetnames, ['Flight 415'])
+            self.assertEqual(book.sheetnames, ['Summary', 'Flight 415'])
+            self.assertEqual(book['Summary'].sheet_state, 'hidden')
+            self.assertEqual(book.active.title, 'Flight 415')
             book.close()
 
     def test_existing_output_not_overwritten(self):

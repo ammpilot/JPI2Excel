@@ -1,5 +1,5 @@
-.\" Revision: 4
-.TH JPI2EXCEL.SH 1 "September 29, 2026" "JPI2Excel 2.0.0" "User Commands"
+.\" Revision: 7
+.TH JPI2EXCEL.SH 1 "September 30, 2026" "JPI2Excel 2.0.0" "User Commands"
 .SH NAME
 jpi2excel.sh \- validate JP Instruments downloads and export CSV or Excel
 .SH SYNOPSIS
@@ -98,7 +98,8 @@ The output is modern XLSX, despite the option's spelling.
 .TP
 .B \-\-xls-separate
 Write one XLSX workbook per selected flight, containing only its flight
-worksheet and no Summary sheet, plus a graph sheet when requested.
+worksheet and a hidden Summary sheet supplying conditional-formatting limits,
+plus a graph sheet when requested. It opens on the Flight sheet.
 .TP
 .B \-\-help
 Print usage and options; no input is required.
@@ -187,13 +188,13 @@ succeeds unless another input failed.
 CSV and flight worksheets have this column order, omitting absent sensors:
 .PP
 .nf
-Sample, DeltaT, DateTime, MAP, RPM, EGTs, TITs, CHTs,
-FF, %HP, OAT, CDT, IAT, Oil P, Oil T, Batt, Used,
-MARK, Diff, Cold, Limits, Lat, Lon, Alt, Speed
+Sample, Delta T, DateTime, MAP, RPM, EGTs, TITs, CHTs,
+FF, % HP, OAT, CDT, IAT, Oil P, Oil T, Batt, Used,
+Mark, Diff, Cold, Limits, Lat, Lon, Alt, Speed
 .fi
 .PP
 Sample numbering begins at 1.
-.B DeltaT is numeric elapsed seconds since flight start.
+.B Delta T is numeric elapsed seconds since flight start.
 It is never elapsed minutes or an Excel fraction of a day.
 Timestamps preserve source-clock values without an invented timezone.
 Excel stores actual datetime cells displayed through seconds, without
@@ -230,8 +231,10 @@ Excel data and Summary sheets freeze row 1 and columns A and B (cell C2).
 Autofilters and cell comments are disabled.
 Source units and configuration appear in info/Summary output.
 .PP
-Flight-column widths follow their data: Sample 60 pixels, DeltaT 55,
-DateTime 115, sensor/navigation values 55, and Limits 120.
+Flight-column widths follow their data: Sample 50 pixels, Delta T 44,
+DateTime 115, and Limits 125.
+CHTs, FF, % HP, OAT, CDT, IAT, Oil P, Oil T, Batt, Used, Mark, Diff, and Cold
+use 53 pixels. MAP, RPM, EGTs, TITs, and navigation values use 55 pixels.
 These widths follow the columns when channels are omitted or added.
 Excel character-width settings are calibrated to the supplied macOS
 Calibri 11 reference workbook; rendering can vary with font and viewer.
@@ -241,12 +244,32 @@ pixels respectively. The Value column wraps text.
 The former Input ordinal is removed.
 A flight may contain at most 1,048,575 data rows in an Excel worksheet;
 use CSV if that limit is exceeded.
+.PP
+Flight sheets in combined and separate workbooks use classic conditional
+formats for recorded sensor alarms.
+Values at or above high limits have Light Red Fill with Dark Red Text;
+values at or below low limits have Yellow Fill with Dark Yellow Text.
+Rules reference the corresponding source's numeric Value cells in Summary.
+Editing those Summary limits changes the conditional formatting in Excel.
+Equality triggers formatting; blank readings remain uncolored.
+Headers are excluded.
+.PP
+At export time, a Flight tab is colored yellow when any reading is at or beyond
+its high or low limit. Each sensor column containing such a reading has red
+header text. Missing readings and absent thresholds do not trigger indicators.
+The header fill and bold styling are preserved. Tab and header colors do not
+recalculate when Summary limits are edited.
+.PP
+Opening window position and size match the saved geometry in data/t2.xlsx:
+xWindow 4280, yWindow 2700, windowWidth 32360, windowHeight 18380 (twips).
+The exporter stores these values without requiring the reference file
+at runtime.
 .SH GRAPHS
 Each Graph sheet contains two native Excel charts:
 Flight N Exhaust Temperatures (EGT/TIT on the primary axis, FF on the secondary)
 and Flight N Cylinder Temperatures (CHT and Oil T on the primary axis, RPM on
 the secondary).
-The horizontal axis references the Flight sheet's DeltaT column in seconds,
+The horizontal axis references the Flight sheet's Delta T column in seconds,
 using proportional numeric time spacing even when recording intervals change.
 .PP
 Cylinder colors match between EGT and CHT, with additional colors beyond six
@@ -254,7 +277,7 @@ cylinders. Temperature series are solid; FF and RPM are dashed. Legends are
 below each chart. Styling follows the supplied CanonicalGraph.xlsx reference.
 TIT and CHT high alarms appear as solid red 2-pixel horizontal lines spanning
 the plot, labeled TIT Limit and CHT Limit. Values come from the same source
-metadata reported in Summary, including in separate files without Summary.
+metadata reported in Summary, including in separate files with hidden Summary.
 Limits and axis bounds are calculated at export time.
 .PP
 Primary maxima include the corresponding high alarm when present.

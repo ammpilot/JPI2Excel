@@ -1,5 +1,5 @@
-REVISION: 6
-REVISION DATE: 2026-09-29
+REVISION: 9
+REVISION DATE: 2026-09-30
 
 This specification supersedes older tentative output layouts.
 
@@ -26,7 +26,8 @@ Combinations such as 393,395:398 are accepted across the combined collection of 
 --xls: Extract all selected flights from all valid input files to one XLSX workbook, one sheet per
 flight, plus a Summary sheet with instrument and flight information (same data as --info).
 
---xls-separate: Extract to one XLSX workbook per selected flight, no summary sheet.
+--xls-separate: Extract to one XLSX workbook per selected flight, with a hidden Summary
+sheet supplying conditional-formatting limits. The visible tabs are Flight and optional Graph.
 
 --graph, --graphs: Identical options adding a Graph <FlightNumber> sheet immediately after each
 selected Flight sheet in combined or separate XLSX output. Fatal with --csv, even with --info.
@@ -50,7 +51,8 @@ flights. Listing always includes all flights, with flights shorter than five min
 
 --verbose: provide additional output during run or on completion, such as number of flights, number
 of flights skipped (because of short duration) if any, number of cylinders, number of
-turbochargers, length of each flight in hh:mm:ss.
+turbochargers, length of each flight in hh:mm:ss. Counted nouns use singular
+for one and plural for zero or more than one (flight, file, cylinder, TIT channel).
 
 --version: print version info.
 
@@ -77,7 +79,7 @@ With --info --help or --info --version, print help/version first and then info i
 are provided. Without inputs, just print help/version.
 
 Excel data and Summary sheets should have the first line and first two columns frozen.
-Columns should be sample number, DeltaT, datetime, MAP, RPM, EGTs, TITs, CHTs, fuel flow, %HP, OAT,
+Columns should be sample number, Delta T, datetime, MAP, RPM, EGTs, TITs, CHTs, fuel flow, % HP, OAT,
 CDT, IAT, OILP, OILT, BAT, USD, MARK, DIF, CLD, Limits. For OILP, use Oil P as the column label; for
 OILT, use Oil T; for Bat, Batt; for USD, Used; for DIF, Diff, for CLD, Cold. For each of the EGTs,
 use, e.g., EGT 1, EGT 2, etc.; similarly for CHTs and TITs (though if there’s only one TIT, just
@@ -114,12 +116,15 @@ APPROVED OUTPUT AND FAILURE DETAILS:
 Source code goes in src/jpi2excel, utilities in pgms, tests in tests. The original testdata
 fixtures are intentionally included in Git. Keep the sibling ../JPI-Parser repository unchanged.
 
-Sample numbering starts at 1. DeltaT MUST be numeric elapsed SECONDS since flight start.
+Sample numbering starts at 1. Delta T MUST be numeric elapsed SECONDS since flight start.
 Use actual datetime cells in Excel, source-clock timezone-naive values, and ISO-style CSV text.
 Freeze the header row and the first two columns (C2). Do not enable autofilters or add cell
 comments. Display Excel datetimes through seconds, without milliseconds; preserve stored values.
 Flight column widths in pixels, assigned by data meaning rather than fixed column letters:
-Sample 60; DeltaT 55; DateTime 115; sensor/navigation values 55; Limits 120.
+Sample 50; Delta T 44; DateTime 115; Limits 125.
+CHTs, FF, % HP, OAT, CDT, IAT, Oil P, Oil T, Batt, Used, Mark, Diff, Cold: 53.
+Other sensor/navigation values, including MAP, RPM, EGTs and TITs: 55.
+Use Delta T, % HP, and Mark as the displayed headings (also in CSV).
 Summary columns and widths in pixels: Source 85; Property 225; Value 450. Wrap the Value column.
 The formerly generated Input ordinal is removed as redundant to Source.
 Excel character-width conversion is calibrated to the supplied macOS Calibri 11 reference
@@ -174,7 +179,7 @@ GRAPHING (VERSION 2):
 
 Use data/CanonicalGraph.xlsx, Graph 415, as the appearance reference. Two graphs per Graph sheet:
 Flight N Exhaust Temperatures (EGT/TIT primary, FF secondary), and Flight N Cylinder Temperatures
-(CHT and Oil T primary, RPM secondary). X values reference the flight DeltaT column, elapsed
+(CHT and Oil T primary, RPM secondary). X values reference the flight Delta T column, elapsed
 seconds, using a numeric axis so variable recording intervals retain proportional spacing.
 Use the reference's first six cylinder colors; additional cylinders get different colors.
 Preserve consistent EGT/CHT colors by cylinder, fonts, solid temperature lines, dashed FF/RPM,
@@ -194,3 +199,39 @@ Multi-engine graph requirements are tracked for future implementation only: mult
 sets per Graph sheet, one set per engine, with titles identifying that engine, for example
 Flight 415 Exhaust Temperatures, Left Engine. Do not add multi-engine decoding in version 2.
 Detailed styles, bounds, edge cases, and future requirements are recorded in docs/Graphing.md.
+
+
+CONDITIONAL FORMATTING:
+
+Flight sheets in combined and separate workbooks have classic cell-value conditional formats for each
+recorded high or low sensor limit. At or above high: Light Red Fill with Dark Red Text
+(fill FFC7CE, text 9C0006). At or below low: Yellow Fill with Dark Yellow Text (fill FFEB9C,
+text 9C6500). Compare inclusively (>= high, <= low); missing readings are uncolored.
+Store the preset background-fill and font colors as differential styles, with an
+explicit background color and no foreground pattern.
+Each rule references its source's corresponding numeric Summary Value cell in
+column C, such as Summary!$C$38, rather than embedding a literal threshold.
+Determine row numbers while writing Summary, independently for each input.
+Apply only to data rows, not headers. Omit absent sensors and absent thresholds.
+Use the same normalized limits as the Limits column, including scaled volts and
+negative cooling-rate thresholds. See docs/ConditionalFormatting.md for details.
+
+Separate workbooks include a hidden Summary sheet for these cell references and open on
+the Flight sheet. Combined workbooks retain their visible Summary.
+
+
+WINDOW GEOMETRY AND ALARM INDICATORS:
+
+All XLSX workbooks use the opening window geometry saved in data/t2.xlsx:
+xWindow 4280, yWindow 2700, windowWidth 32360, windowHeight 18380 (all in twips).
+Encode these values in the exporter; the reference workbook is not a runtime dependency.
+Retain the normal active-sheet policy rather than the reference's active tab.
+
+At export time, color a Flight sheet's tab yellow (FFFF00) if any numeric reading
+is >= its recorded high limit or <= its recorded low limit. Color the header
+text red (FF0000) for each sensor column containing such a reading, retaining
+its bold font and existing header fill. Individual CHT/TIT columns are evaluated
+separately against their shared source alarm thresholds. Blank readings and
+absent thresholds do not trigger indicators. Apply to combined and separate
+workbooks, including exports without graphs. These indicators are static;
+editing a Summary limit later changes cell conditional formatting, not tab/header colors.

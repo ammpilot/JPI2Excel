@@ -1,4 +1,5 @@
-"""Revision: 4. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
+"""Revision: 7. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
+from copy import copy
 import csv
 from datetime import datetime, timedelta
 import errno
@@ -9,8 +10,15 @@ from .model import ConversionError
 
 NAVIGATION = ('LAT', 'LNG', 'ALT', 'SPD')
 LABELS = {'OILP': 'Oil P', 'OILT': 'Oil T', 'BAT': 'Batt', 'USD': 'Used',
-          'DIF': 'Diff', 'CLD': 'Cold', 'HP': '%HP',
+          'DIF': 'Diff', 'CLD': 'Cold', 'HP': '% HP', 'MARK': 'Mark',
           'LAT': 'Lat', 'LNG': 'Lon', 'ALT': 'Alt', 'SPD': 'Speed'}
+
+# Opening window geometry saved by Excel in data/t2.xlsx; dimensions are twips.
+# Encode the reference values so exporting does not depend on that sample file.
+WINDOW_GEOMETRY = {'xWindow': 4280, 'yWindow': 2700,
+                   'windowWidth': 32360, 'windowHeight': 18380}
+NARROW_SENSORS = {'FF', 'HP', 'OAT', 'CDT', 'IAT', 'OILP', 'OILT', 'BAT',
+                  'USD', 'MARK', 'DIF', 'CLD'}
 
 # XLSX stores widths in character units, not pixels. Calibrate to the supplied
 # macOS Calibri 11 workbook: width 20 ~ 120 px, width 75 ~ 450 px.
@@ -20,7 +28,9 @@ def excel_width(pixels):
 
 
 def flight_width(code):
-    return {'Sample': 60, 'DeltaT': 55, 'DateTime': 115, 'Limits': 120}.get(code, 55)
+    if code in NARROW_SENSORS or re.fullmatch(r'C\d+', code):
+        return 53
+    return {'Sample': 50, 'DeltaT': 44, 'DateTime': 115, 'Limits': 125}.get(code, 55)
 
 
 def ordered_codes(flight):
@@ -53,6 +63,20 @@ def units(code, download):
             'LAT': 'degrees', 'LNG': 'degrees', 'ALT': 'ft', 'SPD': 'knots'}.get(code, '')
 
 
+def alarm_category(code):
+    return 'CHT' if re.fullmatch(r'C\d+', code) else 'TIT' if re.fullmatch(r'T\d+', code) else code
+
+
+def alarm_properties(download):
+    for code, (low, high) in download.alarms.items():
+        unit = 'V' if code == 'BAT' else download.metadata['Engine temperature units']
+        if code == 'CLD':
+            unit += '/min'
+        for direction, value in (('low', low), ('high', high)):
+            if value is not None:
+                yield code, direction, f'{code} {direction} alarm ({unit})', value
+
+
 def limits(flight, download, index):
     violations = []
     for code in ordered_codes(flight):
@@ -61,7 +85,7 @@ def limits(flight, download, index):
         value = flight.series[code][index]
         if value is None:
             continue
-        category = 'CHT' if re.fullmatch(r'C\d+', code) else 'TIT' if re.fullmatch(r'T\d+', code) else code
+        category = alarm_category(code)
         low, high = download.alarms.get(category, (None, None))
         # Use individual cylinder/TIT labels and JPI codes for other alarms.
         name = label(code, flight) if category in ('CHT', 'TIT') else code
@@ -73,7 +97,7 @@ def limits(flight, download, index):
 
 
 def headers(flight):
-    return ['Sample', 'DeltaT', 'DateTime'] + [label(code, flight) for code in ordered_codes(flight)]
+    return ['Sample', 'Delta T', 'DateTime'] + [label(code, flight) for code in ordered_codes(flight)]
 
 
 def rows(flight, download):
@@ -94,14 +118,8 @@ def info_items(download, minimum_minutes, *, flight_ids=None):
     yield from download.metadata.items()
     yield 'Minimum duration (minutes)', minimum_minutes
     yield 'Flights meeting minimum duration', sum(f.duration >= minimum_minutes * 60 for f in download.flights)
-    for code, (low, high) in download.alarms.items():
-        unit = 'V' if code == 'BAT' else download.metadata['Engine temperature units']
-        if code == 'CLD':
-            unit += '/min'
-        if low is not None:
-            yield f'{code} low alarm ({unit})', low
-        if high is not None:
-            yield f'{code} high alarm ({unit})', high
+    for _, _, name, value in alarm_properties(download):
+        yield name, value
     for flight in download.flights:
         if flight_ids is not None and flight.id not in flight_ids:
             continue
@@ -135,7 +153,47 @@ def write_csv(path, flight, download):
             writer.writerow(row)
 
 
+def format_alarm_columns(sheet, flight, download, references):
+    from openpyxl.formatting.rule import CellIsRule, FormulaRule
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    if not flight.samples:
+        return
+    colors = {'high': ('FFFFC7CE', 'FF9C0006', 'greaterThanOrEqual'),
+              'low': ('FFFFEB9C', 'FF9C6500', 'lessThanOrEqual')}
+    for index, code in enumerate(ordered_codes(flight), 4):
+        if code == 'Limits':
+            continue
+        available = [(direction, references[(alarm_category(code), direction)])
+                     for direction in colors if (alarm_category(code), direction) in references]
+        if not available:
+            continue
+        column = get_column_letter(index)
+        cells = f'{column}2:{column}{flight.samples + 1}'
+        # A blank reading must not be compared as zero against a low threshold.
+        sheet.conditional_formatting.add(cells, FormulaRule(
+            formula=[f'NOT(ISNUMBER({column}2))'], stopIfTrue=True))
+        for direction, reference in available:
+            fill, text, operator = colors[direction]
+            sheet.conditional_formatting.add(cells, CellIsRule(
+                operator=operator, formula=[reference],
+                # Differential fills use the background color, as in Excel's
+                # standard red/yellow presets; do not add a foreground pattern.
+                fill=PatternFill(bgColor=fill), font=Font(color=text)))
+        low, high = download.alarms[alarm_category(code)]
+        if any(value is not None and ((high is not None and value >= high)
+                                     or (low is not None and value <= low))
+               for value in flight.series[code]):
+            header = sheet.cell(1, index)
+            font = copy(header.font)
+            font.color = 'FFFF0000'
+            header.font = font
+            sheet.sheet_properties.tabColor = 'FFFFFF00'
+
+
 def write_xlsx(path, selected, downloads, minimum_minutes, summary=True, graphs=False):
+    """Write flight data; summary=False hides the Summary used by alarm rules."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -144,6 +202,8 @@ def write_xlsx(path, selected, downloads, minimum_minutes, summary=True, graphs=
         if flight.samples > 1_048_575:
             raise ConversionError(f'Flight {flight.id} exceeds Excel row limit; use CSV', errno.EFBIG)
     workbook = Workbook()
+    for name, value in WINDOW_GEOMETRY.items():
+        setattr(workbook.views[0], name, value)
     workbook.remove(workbook.active)
 
     def style(sheet, pixel_widths):
@@ -168,11 +228,11 @@ def write_xlsx(path, selected, downloads, minimum_minutes, summary=True, graphs=
             elif isinstance(cell.value, datetime):
                 cell.number_format = 'yyyy-mm-dd hh:mm:ss'
 
-    if summary:
-        summary_sheet = workbook.create_sheet('Summary')
+    summary_sheet = workbook.create_sheet('Summary')
 
     used = set()
     graph_warnings = []
+    flight_sheets = []
     for flight, download in selected:
         title = f'Flight {flight.id}'
         suffix = 1
@@ -186,26 +246,36 @@ def write_xlsx(path, selected, downloads, minimum_minutes, summary=True, graphs=
             append(sheet, row)
         codes = ['Sample', 'DeltaT', 'DateTime', *ordered_codes(flight)]
         style(sheet, [flight_width(code) for code in codes])
+        flight_sheets.append((sheet, flight, download))
         if graphs:
             from .graphs import add_graphs
             warnings = add_graphs(workbook, sheet, flight, download,
                                   {code: column for column, code in enumerate(codes, 1)})
             graph_warnings.extend((download, warning) for warning in warnings)
-    if summary:
-        sheet = summary_sheet
-        append(sheet, ['Source', 'Property', 'Value'])
-        for download in downloads:
-            for name, value in info_items(download, minimum_minutes):
-                append(sheet, [download.path.name, name, value])
-            count = sum(d is download for _, d in selected)
-            append(sheet, [download.path.name, 'Exported flights', count])
-            for owner, warning in graph_warnings:
-                if owner is download:
-                    append(sheet, [download.path.name, 'Graph warning', warning])
-        style(sheet, [85, 225, 450])
-        wrapped = Alignment(wrap_text=True)
-        for cell in sheet['C']:
-            cell.alignment = wrapped
+    sheet = summary_sheet
+    alarm_references = {}
+    append(sheet, ['Source', 'Property', 'Value'])
+    for download in downloads:
+        properties = {name: (code, direction) for code, direction, name, _ in alarm_properties(download)}
+        references = alarm_references.setdefault(id(download), {})
+        for name, value in info_items(download, minimum_minutes):
+            append(sheet, [download.path.name, name, value])
+            if name in properties:
+                references[properties[name]] = f'Summary!$C${row_counts[sheet.title]}'
+        count = sum(d is download for _, d in selected)
+        append(sheet, [download.path.name, 'Exported flights', count])
+        for owner, warning in graph_warnings:
+            if owner is download:
+                append(sheet, [download.path.name, 'Graph warning', warning])
+    style(sheet, [85, 225, 450])
+    wrapped = Alignment(wrap_text=True)
+    for cell in sheet['C']:
+        cell.alignment = wrapped
+    for flight_sheet, flight, download in flight_sheets:
+        format_alarm_columns(flight_sheet, flight, download, alarm_references[id(download)])
+    if not summary:
+        summary_sheet.sheet_state = 'hidden'
+        workbook.active = flight_sheets[0][0]
     with Path(path).open('xb') as stream:
         workbook.save(stream)
     workbook.close()

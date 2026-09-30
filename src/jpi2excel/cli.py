@@ -1,4 +1,4 @@
-"""Revision: 4. Command-line orchestration and errno-based exit status."""
+"""Revision: 6. Command-line orchestration and errno-based exit status."""
 import argparse
 from collections import Counter
 import errno
@@ -31,7 +31,7 @@ def parser():
                             ('validate', 'Validate structure and all checksums'),
                             ('csv', 'Write one CSV per selected flight'),
                             ('xls', 'Write one XLSX with summary and one sheet per selected flight (default: JPI2Excel.xlsx)'),
-                            ('xls-separate', 'Write one XLSX per selected flight without summary'),
+                            ('xls-separate', 'Write one XLSX per selected flight with a hidden Summary for alarm formatting'),
                             ('version', 'Print version'), ('help', 'Show this help')]:
         actions.add_argument('--' + flag, action='store_const', const=flag, dest='action', help=help_text)
     p.add_argument('--flights', default='all', metavar='ALL|N,N:M', help='Flight numbers or inclusive ranges (default: all)')
@@ -79,6 +79,10 @@ def error_code(exc):
 
 def report(message):
     print(message, file=sys.stderr)
+
+
+def counted(count, noun):
+    return f'{count} {noun if count == 1 else noun + "s"}'
 
 
 def select(downloads, choices, cutoff):
@@ -203,7 +207,7 @@ def run(argv=None):
                 print(f'{download.path.name}: Flight {flight.id}, {flight.start}, {duration_text(flight.duration)}, {"GPS" if flight.gps else "No GPS"}')
         elif args.action == 'validate':
             for download in downloads:
-                print(f'{download.path.name}: Valid ({len(download.flights)} flights)')
+                print(f'{download.path.name}: Valid ({counted(len(download.flights), "flight")})')
         elif exporting and downloads:
             selected = select(downloads, choices, args.minimum_duration * 60)
             if not selected:
@@ -225,15 +229,16 @@ def run(argv=None):
                             for warning in warnings:
                                 report('Warning: ' + warning)
                 if args.verbose:
-                    report(f'Exported {len(selected)} flights to {len(paths)} files')
+                    report(f'Exported {counted(len(selected), "flight")} to {counted(len(paths), "file")}')
             if args.verbose:
                 skipped = sum(f.duration < args.minimum_duration * 60 for d in downloads for f in d.flights)
-                report(f'Skipped {skipped} flights below minimum duration')
+                report(f'Skipped {counted(skipped, "flight")} below minimum duration')
         if args.verbose:
             for download in downloads:
-                report(f'{download.path.name}: {len(download.flights)} flights')
+                report(f'{download.path.name}: {counted(len(download.flights), "flight")}')
                 for flight in download.flights:
-                    report(f'Flight {flight.id}: {flight.cylinder_count} cylinders; {flight.tit_count} TIT channels; duration {duration_text(flight.duration)}')
+                    report(f'Flight {flight.id}: {counted(flight.cylinder_count, "cylinder")}; '
+                           f'{counted(flight.tit_count, "TIT channel")}; duration {duration_text(flight.duration)}')
     except (ConversionError, OSError) as exc:
         if error_code(exc) == errno.ECANCELED:
             raise

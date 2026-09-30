@@ -1,4 +1,4 @@
-"""Revision: 2. Graph structure, numeric time, bounds, styling and CLI regression tests."""
+"""Revision: 3. Graph structure, numeric time, bounds, styling and CLI regression tests."""
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 import errno
@@ -109,7 +109,8 @@ class GraphTests(unittest.TestCase):
         self.download.alarms = {}
         book, warnings = self.export(summary=False)
         self.assertEqual(warnings, [])
-        self.assertEqual(book.sheetnames, ['Flight 415', 'Graph 415'])
+        self.assertEqual(book.sheetnames, ['Summary', 'Flight 415', 'Graph 415'])
+        self.assertEqual(book['Summary'].sheet_state, 'hidden')
         for chart in book['Graph 415']._charts:
             self.assertEqual(len(chart._charts), 1)
             self.assertEqual(len(chart.series), 1)

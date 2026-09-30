@@ -1,13 +1,16 @@
 # JPI2Excel Project Notes
 
-**Revision:** 7
-**Revision date:** 2026-09-29  
+**Revision:** 10
+**Revision date:** 2026-09-30
 **Project:** JPI2Excel
 
 ## Revision history
 
 | Revision | Date | Summary |
 |---|---|---|
+| 10 | 2026-09-30 | Copied t2 opening-window geometry; flagged flights and sensor headers at inclusive limits; refined widths and labels. |
+| 9 | 2026-09-30 | Corrected conditional-format preset background fills, included equality, and pluralized count output. |
+| 8 | 2026-09-30 | Added Summary-linked conditional formatting for high and low sensor limits in combined and separate workbooks. |
 | 7 | 2026-09-29 | Added version 2 Excel graphs, removed Summary Input, and tracked future multi-engine graph requirements. |
 | 6 | 2026-09-29 | Revised spreadsheet widths, datetime displays and oil labels; removed filters/comments and documented default output names. |
 | 5 | 2026-09-29 | Allowed info alone or with one other action, including selected-flight reporting. |
@@ -16,9 +19,9 @@
 | 3 | 2026-09-28 | Recorded approved CLI/output decisions, implementation scope, fixture inclusion, and strict-validation findings. |
 | 2 | 2026-09-27 | Renamed project to JPI2Excel; added findings on GPS/altitude data, twin-engine representation, alarm/limit metadata, legacy end-of-file behavior, and known gaps in the current upstream JPI-Parser implementation. |
 
-## Approved implementation decisions (Revision 7)
+## Approved implementation decisions (Revision 10)
 
-`PgmSpec.txt` Revision 6 is the current CLI/output specification. It supersedes
+`PgmSpec.txt` Revision 9 is the current CLI/output specification. It supersedes
 older tentative output proposals below. Application source is in `src/jpi2excel`,
 utilities in `pgms`, and regression tests in `tests`. All three original fixtures
 in `testdata` are intentionally included in Git with the user's authorization.
@@ -26,11 +29,11 @@ in `testdata` are intentionally included in Git with the user's authorization.
 Implemented: pinned upstream decoding, strict validation, dense reconstruction,
 legacy alarms, batch CLI, CSV, combined XLSX, and separate XLSX. Combined workbooks
 span all valid inputs, with Summary plus one sheet per flight. Separate workbooks
-contain one flight without summary. Duplicate flight IDs are retained with a
+contain one flight with a hidden Summary supplying conditional-formatting limits. Duplicate flight IDs are retained with a
 warning and distinct names. Existing outputs are never overwritten.
 
 Minimum duration is in minutes (default 5); explicit short-flight selections are
-errors. Sample numbering begins at 1; DeltaT is elapsed seconds. Navigation columns
+errors. Sample numbering begins at 1; Delta T is elapsed seconds. Navigation columns
 are last, labeled Lat/Lon/Alt/Speed. Absent channels are omitted; header-declared
 channels without values stay blank with warnings. Both info and Summary include
 raw metadata, source units, and per-flight derived configuration.
@@ -40,10 +43,21 @@ per-flight details while file metadata and counts remain complete. Info may insp
 short flights; export cutoffs still apply when an export action is also requested.
 All other actions remain mutually exclusive.
 
-Current workbook formatting follows PgmSpec.txt Revision 6: no autofilters or
+Current workbook formatting follows PgmSpec.txt Revision 9: no autofilters or
 cell comments, seconds-only datetime display, Oil P/Oil T labels, widths assigned
 by data type, and wrapped Summary values. Summary has Source, Property, Value;
-the redundant Input ordinal has been removed.
+the redundant Input ordinal has been removed. Flight sheets in combined and separate workbooks
+use classic conditional formatting for every recorded sensor high/low limit,
+referencing the source-specific Summary cells. Values at or above high limits are red and
+values at or below low limits yellow; missing readings are uncolored.
+Conditional-format differential styles explicitly set preset background colors.
+Flight tabs are yellow when any reading is at or beyond its limit; each affected
+sensor header has red text. These indicators are computed at export time.
+Window geometry follows data/t2.xlsx, encoded without a runtime file dependency.
+The shared CSV/XLSX headings now use Delta T, % HP, and Mark. XLSX widths follow
+PgmSpec.txt Revision 9 (Sample 50 pixels, Delta T 44, Limits 125, selected sensors 53).
+See
+[ConditionalFormatting.md](ConditionalFormatting.md).
 
 Version 2.0.0 adds optional native Excel graphs via --graph/--graphs. Graph sheets
 follow each selected Flight sheet, including in separate workbooks. DeltaT seconds

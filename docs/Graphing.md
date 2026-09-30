@@ -1,19 +1,20 @@
 # Excel graphing
 
-Revision: 2 — 2026-09-29; implemented in JPI2Excel 2.0.0.
+Revision: 4 — 2026-09-30; implemented in JPI2Excel 2.0.0.
 
 Use `--graph` or `--graphs` with `--xls` or `--xls-separate`. Each selected
 Flight sheet is immediately followed by its Graph sheet, including duplicate-name
 suffixes: `Flight 415 (2)`, then `Graph 415 (2)`. Separate workbooks include their
-own graph sheet without adding a Summary sheet. Without either option, no graphs
-are added. Both aliases are fatal with `--csv`, including `--info --csv`.
+own graph sheet plus a hidden Summary sheet supplying conditional-formatting
+limits. Without either option, no graphs are added. Both aliases are fatal with
+`--csv`, including `--info --csv`.
 They are ignored for non-export actions. With `--info --xls` or
 `--info --xls-separate`, the requested graphs are included.
 
 ## Charts and source values
 
 The visual reference is `data/CanonicalGraph.xlsx`, sheet `Graph 415`, including
-its updated DeltaT references. The program encodes its styling; the reference
+its updated Delta T references. The program encodes its styling; the reference
 workbook is not a runtime dependency and is not modified.
 
 Each graph sheet has two native, editable Excel charts:
@@ -23,11 +24,11 @@ Each graph sheet has two native, editable Excel charts:
 | Flight N Exhaust Temperatures | EGT and TIT channels | FF | TIT high alarm, labeled TIT Limit |
 | Flight N Cylinder Temperatures | CHT channels and Oil T | RPM | CHT high alarm, labeled CHT Limit |
 
-Every sensor series links to its Flight sheet's numeric DeltaT column for X
+Every sensor series links to its Flight sheet's numeric Delta T column for X
 values and to its corresponding data column for Y values. Straight-line XY
 charts give elapsed seconds proportional spacing even when recording intervals
 change. The horizontal axis is labeled `Time (seconds)`, from zero to the last
-sample's DeltaT, with readable numeric tick spacing and thousands separators
+sample's Delta T, with readable numeric tick spacing and thousands separators
 (for example, 500, 1,000, 1,500). Only the primary horizontal axis has a title
 and tick labels; the secondary horizontal axis is hidden and has no title.
 A zero-duration flight uses
@@ -37,8 +38,7 @@ Alarm lines use the same normalized source alarm values reported in Summary
 and `--info`. They contain two equal Y values at the plot's horizontal endpoints,
 so the lines span the plot. They are solid red, 2 pixels (19,050 EMU) wide.
 Alarm values and axis bounds are calculated at export time; editing a Summary
-cell later does not recalculate a chart's limit or bounds. This also allows
-separate workbooks to show limits without a Summary sheet.
+cell later does not recalculate a chart's limit or bounds. Separate workbooks show graph limits while their Summary sheet is hidden.
 
 Missing channels and channels with no numeric readings are omitted from charts;
 individual missing readings remain gaps. An absent threshold produces no alarm
@@ -101,7 +101,7 @@ will contain one two-chart set per engine, with per-engine data, alarms, and axi
 bounds. Titles identify the engine, for example
 `Flight 415 Exhaust Temperatures, Left Engine`. Use Left/Right for two engines;
 Left/Center/Right for three; engine numbers for four or more. Preserve cylinder
-color assignments in every set and use the shared flight DeltaT timeline.
+color assignments in every set and use the shared flight Delta T timeline.
 
 This requirement includes future formats unsupported by JPI-Parser. Version 2
 does not add multi-engine decoding or change the current single-engine selection

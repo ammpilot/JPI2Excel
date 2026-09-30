@@ -1,6 +1,6 @@
 # JPI2Excel
 
-Revision: 5
+Revision: 8
 
 A Python CLI for validating legacy JP Instruments EDM-700/800 downloads and
 exporting flight data to CSV or Excel (`.xlsx`). Version 2 adds optional flight graphs. Application code lives in `src`,
@@ -55,20 +55,30 @@ an export action is also requested. All actions other than `--info` remain mutua
 exclusive.
 
 The default cutoff is **5 minutes**. Explicitly selecting a shorter flight is an
-error; use a lower cutoff to include it. `DeltaT` is always elapsed **seconds**,
+error; use a lower cutoff to include it. `Delta T` is always elapsed **seconds**,
 and sample numbering starts at 1. CSV files and flight worksheets share the same
 column order. Existing destinations are never overwritten.
 
 Combined workbooks contain a Summary sheet and a sheet per selected flight.
-Separate workbooks contain one flight sheet. With `--graph` (alias `--graphs`),
+Separate workbooks contain one flight sheet and a hidden Summary sheet supplying
+conditional-formatting limits. With `--graph` (alias `--graphs`),
 each Flight sheet is immediately followed by its Graph sheet with exhaust and
 cylinder temperature charts, FF/RPM secondary axes, and red alarm limits.
-Graph X values are DeltaT seconds, with proportional time spacing.
+Graph X values are Delta T seconds, with proportional time spacing.
 Graph options are invalid with CSV and ignored without an XLSX export.
 See [graphing details and future multi-engine requirements](docs/Graphing.md). Row 1 and columns A/B are frozen.
 Autofilters and cell comments are disabled. Info/Summary properties identify units.
 Datetimes display through seconds. Column widths follow the data type, including
 a wider Limits column. Summary has Source, Property, and Value columns; Value wraps.
+Flight sheets highlight readings at or above high limits with light
+red fill/dark red text and readings at or below low limits with yellow fill/dark yellow
+text. Rules reference the appropriate Summary cells; blank readings stay uncolored.
+Flights with such readings have yellow tabs; affected sensor headers have red text.
+Those tab/header indicators reflect values and limits at export time.
+Opening window size and position follow the saved settings in `data/t2.xlsx`.
+Headings use Delta T, % HP, and Mark. Flight widths are Sample 50 pixels,
+Delta T 44, DateTime 115, Limits 125, CHT and supporting sensors 53, and MAP/RPM,
+EGT/TIT/navigation 55. See [conditional formatting](docs/ConditionalFormatting.md).
 Navigation columns, when available, appear last. Initial binary decoding is limited to legacy single-engine
 700/800 layouts with fuel code 0 (US gallons); other layouts fail explicitly.
 The exporter/data model are prepared for additional sensors and engine identity.
