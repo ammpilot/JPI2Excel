@@ -1,4 +1,4 @@
-"""Revision: 3. Command-line orchestration and errno-based exit status."""
+"""Revision: 4. Command-line orchestration and errno-based exit status."""
 import argparse
 from collections import Counter
 import errno
@@ -24,6 +24,8 @@ def parser():
                            'Use --info alone or with one other action.')
     p.add_argument('--info', action='store_true',
                    help='Print file and selected-flight properties, alone or with one other action')
+    p.add_argument('--graph', '--graphs', dest='graphs', action='store_true',
+                   help='Add graphs after each XLSX flight sheet; invalid with --csv; ignored without an XLSX export')
     actions = p.add_mutually_exclusive_group()
     for flag, help_text in [('list', 'List every flight; flights shorter than five minutes last'),
                             ('validate', 'Validate structure and all checksums'),
@@ -148,6 +150,8 @@ def run(argv=None):
     choices = flight_selection(args.flights)
     check_engine(args.engine)
     exporting = args.action in ('csv', 'xls', 'xls-separate')
+    if args.graphs and args.action == 'csv':
+        raise ConversionError('--graph/--graphs cannot be used with --csv')
     if not exporting and (args.output or args.output_dir):
         raise ConversionError('Output options require an export action')
     if not (exporting or args.info) and (choices is not None or args.engine != 'all'):
@@ -207,13 +211,19 @@ def run(argv=None):
             else:
                 paths = output_plan(args, selected)
                 if args.action == 'xls':
-                    write_xlsx(paths[0], selected, downloads, args.minimum_duration)
+                    warnings = write_xlsx(paths[0], selected, downloads, args.minimum_duration,
+                                          graphs=args.graphs)
+                    for warning in warnings:
+                        report('Warning: ' + warning)
                 else:
                     for path, (flight, download) in zip(paths, selected):
                         if args.action == 'csv':
                             write_csv(path, flight, download)
                         else:
-                            write_xlsx(path, [(flight, download)], [download], args.minimum_duration, summary=False)
+                            warnings = write_xlsx(path, [(flight, download)], [download], args.minimum_duration,
+                                                  summary=False, graphs=args.graphs)
+                            for warning in warnings:
+                                report('Warning: ' + warning)
                 if args.verbose:
                     report(f'Exported {len(selected)} flights to {len(paths)} files')
             if args.verbose:

@@ -1,6 +1,6 @@
 # JPI2Excel Project Notes
 
-**Revision:** 6
+**Revision:** 7
 **Revision date:** 2026-09-29  
 **Project:** JPI2Excel
 
@@ -8,6 +8,7 @@
 
 | Revision | Date | Summary |
 |---|---|---|
+| 7 | 2026-09-29 | Added version 2 Excel graphs, removed Summary Input, and tracked future multi-engine graph requirements. |
 | 6 | 2026-09-29 | Revised spreadsheet widths, datetime displays and oil labels; removed filters/comments and documented default output names. |
 | 5 | 2026-09-29 | Allowed info alone or with one other action, including selected-flight reporting. |
 | 1 | 2026-09-23 | Initial project architecture, sample-file observations, dependency strategy, validation goals, and proposed Excel output. |
@@ -15,9 +16,9 @@
 | 3 | 2026-09-28 | Recorded approved CLI/output decisions, implementation scope, fixture inclusion, and strict-validation findings. |
 | 2 | 2026-09-27 | Renamed project to JPI2Excel; added findings on GPS/altitude data, twin-engine representation, alarm/limit metadata, legacy end-of-file behavior, and known gaps in the current upstream JPI-Parser implementation. |
 
-## Approved implementation decisions (Revision 6)
+## Approved implementation decisions (Revision 7)
 
-`PgmSpec.txt` Revision 5 is the current CLI/output specification. It supersedes
+`PgmSpec.txt` Revision 6 is the current CLI/output specification. It supersedes
 older tentative output proposals below. Application source is in `src/jpi2excel`,
 utilities in `pgms`, and regression tests in `tests`. All three original fixtures
 in `testdata` are intentionally included in Git with the user's authorization.
@@ -39,10 +40,17 @@ per-flight details while file metadata and counts remain complete. Info may insp
 short flights; export cutoffs still apply when an export action is also requested.
 All other actions remain mutually exclusive.
 
-Current workbook formatting follows PgmSpec.txt Revision 5: no autofilters or
+Current workbook formatting follows PgmSpec.txt Revision 6: no autofilters or
 cell comments, seconds-only datetime display, Oil P/Oil T labels, widths assigned
-by data type, and wrapped Summary values. Summary Input is the ordinal of each
-successfully read source, not a flight number.
+by data type, and wrapped Summary values. Summary has Source, Property, Value;
+the redundant Input ordinal has been removed.
+
+Version 2.0.0 adds optional native Excel graphs via --graph/--graphs. Graph sheets
+follow each selected Flight sheet, including in separate workbooks. DeltaT seconds
+provide a numeric time axis. The two charts show EGT/TIT with FF and CHT/Oil T with
+RPM, with source alarm lines and computed axis bounds. See [Graphing.md](Graphing.md)
+for reference styling, edge cases, and the deferred multi-engine graph requirements.
+This release does not change parsing or implement multi-engine decoding.
 
 Corrupt inputs are rejected as whole files while the batch continues. The final
 exit code reports bad data. Initial supported decoding is the legacy single-engine

@@ -1,4 +1,4 @@
-REVISION: 5
+REVISION: 6
 REVISION DATE: 2026-09-29
 
 This specification supersedes older tentative output layouts.
@@ -26,7 +26,12 @@ Combinations such as 393,395:398 are accepted across the combined collection of 
 --xls: Extract all selected flights from all valid input files to one XLSX workbook, one sheet per
 flight, plus a Summary sheet with instrument and flight information (same data as --info).
 
---xls-separate: Extract to one XLSX workbook per selected flight, no summary sheet, just flight data.
+--xls-separate: Extract to one XLSX workbook per selected flight, no summary sheet.
+
+--graph, --graphs: Identical options adding a Graph <FlightNumber> sheet immediately after each
+selected Flight sheet in combined or separate XLSX output. Fatal with --csv, even with --info.
+Ignored without an XLSX export, including standalone --info, --list, and --validate.
+With --info plus an XLSX export, include the graphs. See GRAPHING below.
 
 --engine: which engine’s data to extract. Default is all, otherwise left, right, or an engine
 number may be provided. Multiple engines may be specified as a comma-separate flag argument (e.g.,
@@ -71,7 +76,7 @@ Flight/engine selection is valid with --info or an export; output paths require 
 With --info --help or --info --version, print help/version first and then info if input files
 are provided. Without inputs, just print help/version.
 
-Excel files should have each sheet with first line and first two columns frozen (header lines).
+Excel data and Summary sheets should have the first line and first two columns frozen.
 Columns should be sample number, DeltaT, datetime, MAP, RPM, EGTs, TITs, CHTs, fuel flow, %HP, OAT,
 CDT, IAT, OILP, OILT, BAT, USD, MARK, DIF, CLD, Limits. For OILP, use Oil P as the column label; for
 OILT, use Oil T; for Bat, Batt; for USD, Used; for DIF, Diff, for CLD, Cold. For each of the EGTs,
@@ -115,9 +120,8 @@ Freeze the header row and the first two columns (C2). Do not enable autofilters 
 comments. Display Excel datetimes through seconds, without milliseconds; preserve stored values.
 Flight column widths in pixels, assigned by data meaning rather than fixed column letters:
 Sample 60; DeltaT 55; DateTime 115; sensor/navigation values 55; Limits 120.
-Summary widths in pixels: Source 85; Input 50; Property 225; Value 450. Wrap the Value column.
-Input is the one-based ordinal of each successfully read source file in input order, allowing
-repeated inputs or sources with identical basenames to be distinguished; it is not a flight ID.
+Summary columns and widths in pixels: Source 85; Property 225; Value 450. Wrap the Value column.
+The formerly generated Input ordinal is removed as redundant to Source.
 Excel character-width conversion is calibrated to the supplied macOS Calibri 11 reference
 workbook (approximately six pixels per stored width unit). Other fonts/viewers may render
 slightly differently.
@@ -164,3 +168,29 @@ at data_start + $L * 256. Decode only $D-allocated bytes. Accept the unused fina
 block space regardless of its contents; it must never produce additional samples.
 Incorrect framing and checksums remain errors. Include logical/physical lengths,
 boundaries, block count, and slack length/nonzero status in --info and Summary.
+
+
+GRAPHING (VERSION 2):
+
+Use data/CanonicalGraph.xlsx, Graph 415, as the appearance reference. Two graphs per Graph sheet:
+Flight N Exhaust Temperatures (EGT/TIT primary, FF secondary), and Flight N Cylinder Temperatures
+(CHT and Oil T primary, RPM secondary). X values reference the flight DeltaT column, elapsed
+seconds, using a numeric axis so variable recording intervals retain proportional spacing.
+Use the reference's first six cylinder colors; additional cylinders get different colors.
+Preserve consistent EGT/CHT colors by cylinder, fonts, solid temperature lines, dashed FF/RPM,
+and bottom legends. Use solid red 2-pixel alarm lines spanning the plot width, with values from
+the source metadata also reported in Summary: TIT high alarm labeled TIT Limit; CHT high alarm
+labeled CHT Limit. Absent series/limits are omitted. No temperature data means omit that chart
+and issue a nonfatal warning. Duplicate flight sheet suffixes also apply to Graph sheet names.
+
+Maxima: cylinder primary max(CHT high alarm, all CHT, all Oil T) +25, rounded up to 50;
+cylinder secondary max(all RPM) +100, rounded up to 100; exhaust primary max(TIT high alarm,
+all TIT, all EGT) +100, rounded up to 100; exhaust secondary max(all FF) +1, rounded up to 1.
+Minima: both primary axes and RPM use min(all values plotted on the axis), rounded down to 100;
+FF uses 1. For degenerate data, use at least a one-second X span and FF maximum 2.
+Absent thresholds are excluded from bounds. Values are not synthesized for missing channels.
+
+Multi-engine graph requirements are tracked for future implementation only: multiple two-chart
+sets per Graph sheet, one set per engine, with titles identifying that engine, for example
+Flight 415 Exhaust Temperatures, Left Engine. Do not add multi-engine decoding in version 2.
+Detailed styles, bounds, edge cases, and future requirements are recorded in docs/Graphing.md.

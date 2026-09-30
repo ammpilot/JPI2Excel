@@ -1,4 +1,4 @@
-"""Revision: 4. Export contracts and complete command-line behavior."""
+"""Revision: 5. Export contracts and complete command-line behavior."""
 from contextlib import redirect_stdout, redirect_stderr
 import csv
 import errno
@@ -91,10 +91,11 @@ class ExportTests(unittest.TestCase):
         self.assertEqual([r[1] for r in sheet.iter_rows(min_row=2, values_only=True)], [0,2,4,6,8])
         self.assertEqual(sheet['C2'].number_format, 'yyyy-mm-dd hh:mm:ss')
         summary = workbook['Summary']
-        for column, pixels in zip('ABCD', [85,50,225,450]):
+        self.assertEqual([cell.value for cell in summary[1]], ['Source', 'Property', 'Value'])
+        for column, pixels in zip('ABC', [85,225,450]):
             self.assertAlmostEqual(summary.column_dimensions[column].width * 6, pixels, delta=1)
-        self.assertTrue(all(cell.alignment.wrap_text for cell in summary['D']))
-        download_cell = next(row[3] for row in summary if row[2].value == 'Download datetime')
+        self.assertTrue(all(cell.alignment.wrap_text for cell in summary['C']))
+        download_cell = next(row[2] for row in summary if row[1].value == 'Download datetime')
         self.assertEqual(download_cell.number_format, 'yyyy-mm-dd hh:mm:ss')
         self.assertEqual(download_cell.value, self.download.metadata['Download datetime'])
 
@@ -120,7 +121,7 @@ class ExportTests(unittest.TestCase):
         write_xlsx(target, [(self.flight,self.download)], [self.download], 0)
         workbook = load_workbook(target)
         self.addCleanup(workbook.close)
-        cell = next(row[3] for row in workbook['Summary'] if row[2].value == 'Aircraft ID')
+        cell = next(row[2] for row in workbook['Summary'] if row[1].value == 'Aircraft ID')
         self.assertEqual(cell.value, '=1+1')
         self.assertEqual(cell.data_type, 's')
 
@@ -328,7 +329,7 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(workbook.sheetnames,['Summary','Flight 415','Flight 416','Flight 417','Flight 418'])
         for fid, samples in expected['U260919'].items():
             self.assertEqual(workbook[f'Flight {fid}'].max_row,samples + 1)
-        properties = {row[2]: row[3] for row in workbook['Summary'].iter_rows(min_row=2,values_only=True)}
+        properties = {row[1]: row[2] for row in workbook['Summary'].iter_rows(min_row=2,values_only=True)}
         self.assertEqual(properties['Binary block count ($L)'],369)
         self.assertEqual(properties['Block slack length (bytes)'],224)
         self.assertEqual(properties['Block slack nonzero'],True)

@@ -1,4 +1,4 @@
-"""Revision: 3. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
+"""Revision: 4. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
 import csv
 from datetime import datetime, timedelta
 import errno
@@ -135,7 +135,7 @@ def write_csv(path, flight, download):
             writer.writerow(row)
 
 
-def write_xlsx(path, selected, downloads, minimum_minutes, summary=True):
+def write_xlsx(path, selected, downloads, minimum_minutes, summary=True, graphs=False):
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -169,19 +169,10 @@ def write_xlsx(path, selected, downloads, minimum_minutes, summary=True):
                 cell.number_format = 'yyyy-mm-dd hh:mm:ss'
 
     if summary:
-        sheet = workbook.create_sheet('Summary')
-        append(sheet, ['Source', 'Input', 'Property', 'Value'])
-        for index, download in enumerate(downloads, 1):
-            for name, value in info_items(download, minimum_minutes):
-                append(sheet, [download.path.name, index, name, value])
-            count = sum(d is download for _, d in selected)
-            append(sheet, [download.path.name, index, 'Exported flights', count])
-        style(sheet, [85, 50, 225, 450])
-        wrapped = Alignment(wrap_text=True)
-        for cell in sheet['D']:
-            cell.alignment = wrapped
+        summary_sheet = workbook.create_sheet('Summary')
 
     used = set()
+    graph_warnings = []
     for flight, download in selected:
         title = f'Flight {flight.id}'
         suffix = 1
@@ -195,6 +186,27 @@ def write_xlsx(path, selected, downloads, minimum_minutes, summary=True):
             append(sheet, row)
         codes = ['Sample', 'DeltaT', 'DateTime', *ordered_codes(flight)]
         style(sheet, [flight_width(code) for code in codes])
+        if graphs:
+            from .graphs import add_graphs
+            warnings = add_graphs(workbook, sheet, flight, download,
+                                  {code: column for column, code in enumerate(codes, 1)})
+            graph_warnings.extend((download, warning) for warning in warnings)
+    if summary:
+        sheet = summary_sheet
+        append(sheet, ['Source', 'Property', 'Value'])
+        for download in downloads:
+            for name, value in info_items(download, minimum_minutes):
+                append(sheet, [download.path.name, name, value])
+            count = sum(d is download for _, d in selected)
+            append(sheet, [download.path.name, 'Exported flights', count])
+            for owner, warning in graph_warnings:
+                if owner is download:
+                    append(sheet, [download.path.name, 'Graph warning', warning])
+        style(sheet, [85, 225, 450])
+        wrapped = Alignment(wrap_text=True)
+        for cell in sheet['C']:
+            cell.alignment = wrapped
     with Path(path).open('xb') as stream:
         workbook.save(stream)
     workbook.close()
+    return [f'{download.path.name}: {warning}' for download, warning in graph_warnings]

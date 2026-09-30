@@ -1,9 +1,9 @@
 # JPI2Excel
 
-Revision: 4
+Revision: 5
 
 A Python CLI for validating legacy JP Instruments EDM-700/800 downloads and
-exporting flight data to CSV or Excel (`.xlsx`). Application code lives in `src`,
+exporting flight data to CSV or Excel (`.xlsx`). Version 2 adds optional flight graphs. Application code lives in `src`,
 utilities in `pgms`, tests in `tests`, and the original fixtures in `testdata`.
 
 ## Run from this checkout
@@ -37,7 +37,7 @@ For inputs that pass validation:
 
 ```sh
 python3 pgms/jpi2excel.py --csv --flights 415,416:418 --minimum-duration 0 --output-dir /existing/output data.JPI
-python3 pgms/jpi2excel.py --xls --output flights.xlsx first.JPI second.JPI
+python3 pgms/jpi2excel.py --xls --graphs --output flights.xlsx first.JPI second.JPI
 python3 pgms/jpi2excel.py --xls-separate --minimum-duration 0 --output-dir /existing/output data.JPI
 python3 pgms/jpi2excel.py --info data.JPI
 ```
@@ -60,11 +60,15 @@ and sample numbering starts at 1. CSV files and flight worksheets share the same
 column order. Existing destinations are never overwritten.
 
 Combined workbooks contain a Summary sheet and a sheet per selected flight.
-Separate workbooks contain one flight sheet. Row 1 and columns A/B are frozen.
+Separate workbooks contain one flight sheet. With `--graph` (alias `--graphs`),
+each Flight sheet is immediately followed by its Graph sheet with exhaust and
+cylinder temperature charts, FF/RPM secondary axes, and red alarm limits.
+Graph X values are DeltaT seconds, with proportional time spacing.
+Graph options are invalid with CSV and ignored without an XLSX export.
+See [graphing details and future multi-engine requirements](docs/Graphing.md). Row 1 and columns A/B are frozen.
 Autofilters and cell comments are disabled. Info/Summary properties identify units.
 Datetimes display through seconds. Column widths follow the data type, including
-a wider Limits column. Summary values wrap; its Input column numbers the valid
-source inputs in order, distinguishing repeated inputs or identical filenames.
+a wider Limits column. Summary has Source, Property, and Value columns; Value wraps.
 Navigation columns, when available, appear last. Initial binary decoding is limited to legacy single-engine
 700/800 layouts with fuel code 0 (US gallons); other layouts fail explicitly.
 The exporter/data model are prepared for additional sensors and engine identity.

@@ -1,5 +1,5 @@
-.\" Revision: 3
-.TH JPI2EXCEL.SH 1 "September 29, 2026" "JPI2Excel 0.1.0" "User Commands"
+.\" Revision: 4
+.TH JPI2EXCEL.SH 1 "September 29, 2026" "JPI2Excel 2.0.0" "User Commands"
 .SH NAME
 jpi2excel.sh \- validate JP Instruments downloads and export CSV or Excel
 .SH SYNOPSIS
@@ -98,7 +98,7 @@ The output is modern XLSX, despite the option's spelling.
 .TP
 .B \-\-xls-separate
 Write one XLSX workbook per selected flight, containing only its flight
-worksheet and no Summary sheet.
+worksheet and no Summary sheet, plus a graph sheet when requested.
 .TP
 .B \-\-help
 Print usage and options; no input is required.
@@ -106,6 +106,18 @@ Print usage and options; no input is required.
 .B \-\-version
 Print the program version; no input is required.
 .SH OPTIONS
+.TP
+.B \-\-graph, \-\-graphs
+Add a Graph worksheet immediately after each selected Flight worksheet.
+Both spellings have identical behavior in combined and separate XLSX workbooks.
+The option is a fatal argument error with
+.BR \-\-csv ,
+even when combined with
+.BR \-\-info .
+It is ignored without an XLSX export, including standalone info, list,
+and validate.
+With info plus an XLSX export, graphs are included.
+See GRAPHS below.
 .TP
 .BI \-\-flights " selection"
 Select
@@ -214,7 +226,7 @@ suffixes.
 Equality to a threshold is not a violation.
 Missing thresholds are not invented.
 .PP
-Excel sheets freeze row 1 and columns A and B (cell C2).
+Excel data and Summary sheets freeze row 1 and columns A and B (cell C2).
 Autofilters and cell comments are disabled.
 Source units and configuration appear in info/Summary output.
 .PP
@@ -224,14 +236,43 @@ These widths follow the columns when channels are omitted or added.
 Excel character-width settings are calibrated to the supplied macOS
 Calibri 11 reference workbook; rendering can vary with font and viewer.
 .PP
-Summary columns Source, Input, Property, and Value use widths of 85, 50,
-225, and 450 pixels respectively.
-The Value column wraps text.
-Input is the one-based number of each successfully read source in input order.
-It distinguishes repeated inputs or files sharing the same basename;
-it is not a flight number.
+Summary columns Source, Property, and Value use widths of 85, 225, and 450
+pixels respectively. The Value column wraps text.
+The former Input ordinal is removed.
 A flight may contain at most 1,048,575 data rows in an Excel worksheet;
 use CSV if that limit is exceeded.
+.SH GRAPHS
+Each Graph sheet contains two native Excel charts:
+Flight N Exhaust Temperatures (EGT/TIT on the primary axis, FF on the secondary)
+and Flight N Cylinder Temperatures (CHT and Oil T on the primary axis, RPM on
+the secondary).
+The horizontal axis references the Flight sheet's DeltaT column in seconds,
+using proportional numeric time spacing even when recording intervals change.
+.PP
+Cylinder colors match between EGT and CHT, with additional colors beyond six
+cylinders. Temperature series are solid; FF and RPM are dashed. Legends are
+below each chart. Styling follows the supplied CanonicalGraph.xlsx reference.
+TIT and CHT high alarms appear as solid red 2-pixel horizontal lines spanning
+the plot, labeled TIT Limit and CHT Limit. Values come from the same source
+metadata reported in Summary, including in separate files without Summary.
+Limits and axis bounds are calculated at export time.
+.PP
+Primary maxima include the corresponding high alarm when present.
+Cylinder primary maximum is max(CHT, Oil T, CHT alarm) plus 25,
+rounded up to 50.
+Exhaust primary maximum is max(EGT, TIT, TIT alarm) plus 100, rounded up to 100.
+RPM maximum is max(RPM) plus 100, rounded up to 100.
+FF maximum is max(FF) plus 1, rounded up to 1.
+Both primary minima and the RPM minimum are the minimum of plotted values
+rounded down to 100. FF minimum is 1; values below it are outside the plot.
+A zero-duration flight uses a one-second X span; FF maximum is at least 2
+so its axis has a nonzero span.
+.PP
+Missing series and thresholds are omitted. A chart with no temperature data
+is omitted with a nonfatal warning. Missing FF/RPM omits its secondary axis.
+Duplicate flight numbers retain matching suffixes on their Flight and Graph
+sheets. Multi-engine chart sets are documented for future work; decoding
+remains single-engine.
 .SH EXIT STATUS
 Zero indicates success; warnings are nonfatal.
 Most failures use the platform's numeric
@@ -296,10 +337,10 @@ Export selected flights, including the short flight 417:
     testdata/U260919.JPI
 .fi
 .PP
-Create a combined workbook using the default five-minute cutoff:
+Create a combined workbook with graphs using the default five-minute cutoff:
 .PP
 .nf
-\&./pgms/jpi2excel.sh \-\-xls \-\-output flights.xlsx \e
+\&./pgms/jpi2excel.sh \-\-xls \-\-graphs \-\-output flights.xlsx \e
     testdata/U260731.JPI testdata/U260828.JPI
 .fi
 .SH FILES
