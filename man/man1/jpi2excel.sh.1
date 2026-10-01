@@ -1,4 +1,4 @@
-.\" Revision: 7
+.\" Revision: 8
 .TH JPI2EXCEL.SH 1 "September 30, 2026" "JPI2Excel 2.0.0" "User Commands"
 .SH NAME
 jpi2excel.sh \- validate JP Instruments downloads and export CSV or Excel
@@ -260,8 +260,9 @@ header text. Missing readings and absent thresholds do not trigger indicators.
 The header fill and bold styling are preserved. Tab and header colors do not
 recalculate when Summary limits are edited.
 .PP
-Opening window position and size match the saved geometry in data/t2.xlsx:
-xWindow 4280, yWindow 2700, windowWidth 32360, windowHeight 18380 (twips).
+Opening window width matches data/t4.xlsx;
+height and position match data/t2.xlsx:
+xWindow 4280, yWindow 2700, windowWidth 36860, windowHeight 18380 (twips).
 The exporter stores these values without requiring the reference file
 at runtime.
 .SH GRAPHS

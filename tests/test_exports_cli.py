@@ -1,4 +1,4 @@
-"""Revision: 8. Export contracts and complete command-line behavior."""
+"""Revision: 9. Export contracts and complete command-line behavior."""
 from contextlib import redirect_stdout, redirect_stderr
 import csv
 import errno
@@ -150,7 +150,7 @@ class ExportTests(unittest.TestCase):
             self.addCleanup(workbook.close)
             view = workbook.views[0]
             self.assertEqual((view.xWindow, view.yWindow, view.windowWidth, view.windowHeight),
-                             (4280, 2700, 32360, 18380))
+                             (4280, 2700, 36860, 18380))
 
     def test_metadata_is_literal_text(self):
         self.download.metadata['Aircraft ID'] = '=1+1'

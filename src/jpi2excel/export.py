@@ -1,4 +1,4 @@
-"""Revision: 7. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
+"""Revision: 8. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
 from copy import copy
 import csv
 from datetime import datetime, timedelta
@@ -13,10 +13,10 @@ LABELS = {'OILP': 'Oil P', 'OILT': 'Oil T', 'BAT': 'Batt', 'USD': 'Used',
           'DIF': 'Diff', 'CLD': 'Cold', 'HP': '% HP', 'MARK': 'Mark',
           'LAT': 'Lat', 'LNG': 'Lon', 'ALT': 'Alt', 'SPD': 'Speed'}
 
-# Opening window geometry saved by Excel in data/t2.xlsx; dimensions are twips.
+# Opening geometry from data/t2.xlsx, with width from data/t4.xlsx (twips).
 # Encode the reference values so exporting does not depend on that sample file.
 WINDOW_GEOMETRY = {'xWindow': 4280, 'yWindow': 2700,
-                   'windowWidth': 32360, 'windowHeight': 18380}
+                   'windowWidth': 36860, 'windowHeight': 18380}
 NARROW_SENSORS = {'FF', 'HP', 'OAT', 'CDT', 'IAT', 'OILP', 'OILT', 'BAT',
                   'USD', 'MARK', 'DIF', 'CLD'}
 

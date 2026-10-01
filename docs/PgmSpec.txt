@@ -1,4 +1,4 @@
-REVISION: 9
+REVISION: 10
 REVISION DATE: 2026-09-30
 
 This specification supersedes older tentative output layouts.
@@ -222,8 +222,9 @@ the Flight sheet. Combined workbooks retain their visible Summary.
 
 WINDOW GEOMETRY AND ALARM INDICATORS:
 
-All XLSX workbooks use the opening window geometry saved in data/t2.xlsx:
-xWindow 4280, yWindow 2700, windowWidth 32360, windowHeight 18380 (all in twips).
+All XLSX workbooks use the opening window width from data/t4.xlsx, with height
+and position from data/t2.xlsx:
+xWindow 4280, yWindow 2700, windowWidth 36860, windowHeight 18380 (all in twips).
 Encode these values in the exporter; the reference workbook is not a runtime dependency.
 Retain the normal active-sheet policy rather than the reference's active tab.
 

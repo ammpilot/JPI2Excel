@@ -1,6 +1,6 @@
 # JPI2Excel
 
-Revision: 8
+Revision: 9
 
 A Python CLI for validating legacy JP Instruments EDM-700/800 downloads and
 exporting flight data to CSV or Excel (`.xlsx`). Version 2 adds optional flight graphs. Application code lives in `src`,
@@ -75,7 +75,8 @@ red fill/dark red text and readings at or below low limits with yellow fill/dark
 text. Rules reference the appropriate Summary cells; blank readings stay uncolored.
 Flights with such readings have yellow tabs; affected sensor headers have red text.
 Those tab/header indicators reflect values and limits at export time.
-Opening window size and position follow the saved settings in `data/t2.xlsx`.
+Opening window width follows `data/t4.xlsx` (36,860 twips); height and position
+follow `data/t2.xlsx`.
 Headings use Delta T, % HP, and Mark. Flight widths are Sample 50 pixels,
 Delta T 44, DateTime 115, Limits 125, CHT and supporting sensors 53, and MAP/RPM,
 EGT/TIT/navigation 55. See [conditional formatting](docs/ConditionalFormatting.md).
