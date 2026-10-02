@@ -1,6 +1,9 @@
 # JPI2Excel
 
-Revision: 9
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Revision: 11
 
 A Python CLI for validating legacy JP Instruments EDM-700/800 downloads and
 exporting flight data to CSV or Excel (`.xlsx`). Version 2 adds optional flight graphs. Application code lives in `src`,
@@ -114,7 +117,8 @@ flight IDs, CLI errors, and CSV/XLSX agreement.
 - [Format observations and regression findings](docs/JPI-Format.md)
 
 JPI-Parser is an MIT-licensed dependency by
-[unicornlines](https://github.com/unicornlines/JPI-Parser). Its code stays separate;
-JPI2Excel calls its decoder and metric definitions through a compatibility layer.
-See [third-party attribution](docs/THIRD-PARTY.md). A license for JPI2Excel itself
-has not yet been selected.
+[unicornlines](https://github.com/unicornlines/JPI-Parser). JPI2Excel imports its
+decoder and metric definitions; the compatibility adapter also contains adapted
+decoder orchestration with the original MIT notice.
+See [third-party attribution](docs/THIRD-PARTY.md). Project-specific material carries the notice in
+[COPYRIGHT](COPYRIGHT); upstream-derived portions retain the MIT license.

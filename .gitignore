@@ -1,4 +1,7 @@
-# Revision: 1
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+# Revision: 2
 .venv/
 __pycache__/
 *.py[cod]

@@ -1,4 +1,7 @@
-"""Revision: 1. Project-owned normalized data and errors."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 2. Project-owned normalized data and errors."""
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path

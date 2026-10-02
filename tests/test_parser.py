@@ -1,4 +1,7 @@
-"""Revision: 2. Regression contracts established before decoder changes."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 3. Regression contracts established before decoder changes."""
 import tempfile
 import unittest
 from pathlib import Path

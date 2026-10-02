@@ -1,6 +1,9 @@
 # Excel graphing
 
-Revision: 4 — 2026-09-30; implemented in JPI2Excel 2.0.0.
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Revision: 5 — 2026-09-30; implemented in JPI2Excel 2.0.0.
 
 Use `--graph` or `--graphs` with `--xls` or `--xls-separate`. Each selected
 Flight sheet is immediately followed by its Graph sheet, including duplicate-name

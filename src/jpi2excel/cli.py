@@ -1,4 +1,7 @@
-"""Revision: 6. Command-line orchestration and errno-based exit status."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 7. Command-line orchestration and errno-based exit status."""
 import argparse
 from collections import Counter
 import errno

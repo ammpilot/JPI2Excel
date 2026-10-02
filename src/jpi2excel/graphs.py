@@ -1,4 +1,7 @@
-"""Revision: 2. Native Excel flight graphs styled from CanonicalGraph.xlsx."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 3. Native Excel flight graphs styled from CanonicalGraph.xlsx."""
 from colorsys import hsv_to_rgb
 from math import ceil, floor, log10
 import re

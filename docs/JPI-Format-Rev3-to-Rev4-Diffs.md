@@ -1,5 +1,10 @@
 # JPI-Format Revision 3 → Revision 4 Changes
 
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Revision: 1
+
 **Project:** JPI2Excel  
 **Date:** 2026-09-28  
 **Target file:** `JPI-Format.md`

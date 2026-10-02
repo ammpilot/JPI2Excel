@@ -1,6 +1,9 @@
 # Flight alarm conditional formatting
 
-Revision: 3 — 2026-09-30.
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Revision: 4 — 2026-09-30.
 
 Flight sheets use Excel's classic cell-value conditional formatting for every
 sensor column with an alarm threshold recorded in the source file:

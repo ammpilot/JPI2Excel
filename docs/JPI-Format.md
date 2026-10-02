@@ -1,7 +1,10 @@
 # JPI File Format Notes
 
-**Revision:** 4  
-**Revision date:** 2026-09-28  
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+**Revision:** 5
+**Revision date:** 2026-10-02
 **Project:** JPI2Excel
 
 ## Revision history

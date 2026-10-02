@@ -1,0 +1,14 @@
+Revision: 2
+
+Project-specific code, documentation, configuration, and test code:
+
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Portions derived from unicornlines/JPI-Parser retain their upstream MIT license
+and copyright notice. The complete upstream notice is repeated in
+src/jpi2excel/reader.py and docs/THIRD-PARTY.md.
+
+This project notice does not apply to recorded .JPI data, test-data fixtures,
+or reference workbooks. Third-party dependencies retain their own copyright
+notices and licenses.

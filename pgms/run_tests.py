@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Revision: 1. Run the regression suite without writing into upstream."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 2. Run the regression suite without writing into upstream."""
 import argparse
 import sys
 import unittest

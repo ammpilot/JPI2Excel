@@ -1,4 +1,7 @@
-"""Revision: 3. Excel alarm rules, source-specific references, and missing values."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 4. Excel alarm rules, source-specific references, and missing values."""
 from copy import deepcopy
 from pathlib import Path
 import tempfile

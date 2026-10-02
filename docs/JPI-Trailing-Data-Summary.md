@@ -1,5 +1,10 @@
 # JPI Legacy Trailing-Data Analysis — Conclusions
 
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Revision: 1
+
 **Project:** JPI2Excel  
 **Date:** 2026-09-28
 

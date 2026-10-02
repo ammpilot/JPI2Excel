@@ -1,4 +1,7 @@
-"""Revision: 1. Read-only development access to the pinned sibling dependency."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 2. Read-only development access to the pinned sibling dependency."""
 from pathlib import Path
 import subprocess
 import sys

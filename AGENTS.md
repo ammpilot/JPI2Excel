@@ -1,5 +1,10 @@
 # AGENTS.md
 
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+Revision: 1
+
 ## Project
 
 This repository is for a macOS-friendly JP Instruments `.JPI` engine-monitor data converter, initially targeting EDM-800 files and Excel `.xlsx` output.

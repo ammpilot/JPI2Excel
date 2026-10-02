@@ -1,13 +1,17 @@
 # JPI2Excel Project Notes
 
-**Revision:** 11
-**Revision date:** 2026-09-30
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+**Revision:** 12
+**Revision date:** 2026-10-02
 **Project:** JPI2Excel
 
 ## Revision history
 
 | Revision | Date | Summary |
 |---|---|---|
+| 12 | 2026-10-02 | Added project copyright notices and preserved the complete MIT license in upstream-derived code. |
 | 11 | 2026-09-30 | Widened generated Excel windows to 36,860 twips using t4.xlsx. |
 | 10 | 2026-09-30 | Copied t2 opening-window geometry; flagged flights and sensor headers at inclusive limits; refined widths and labels. |
 | 9 | 2026-09-30 | Corrected conditional-format preset background fills, included equality, and pluralized count output. |
@@ -20,9 +24,9 @@
 | 3 | 2026-09-28 | Recorded approved CLI/output decisions, implementation scope, fixture inclusion, and strict-validation findings. |
 | 2 | 2026-09-27 | Renamed project to JPI2Excel; added findings on GPS/altitude data, twin-engine representation, alarm/limit metadata, legacy end-of-file behavior, and known gaps in the current upstream JPI-Parser implementation. |
 
-## Approved implementation decisions (Revision 11)
+## Approved implementation decisions (Revision 12)
 
-`PgmSpec.txt` Revision 10 is the current CLI/output specification. It supersedes
+`PgmSpec.txt` Revision 11 is the current CLI/output specification. It supersedes
 older tentative output proposals below. Application source is in `src/jpi2excel`,
 utilities in `pgms`, and regression tests in `tests`. All three original fixtures
 in `testdata` are intentionally included in Git with the user's authorization.
@@ -44,7 +48,7 @@ per-flight details while file metadata and counts remain complete. Info may insp
 short flights; export cutoffs still apply when an export action is also requested.
 All other actions remain mutually exclusive.
 
-Current workbook formatting follows PgmSpec.txt Revision 10: no autofilters or
+Current workbook formatting follows PgmSpec.txt Revision 11: no autofilters or
 cell comments, seconds-only datetime display, Oil P/Oil T labels, widths assigned
 by data type, and wrapped Summary values. Summary has Source, Property, Value;
 the redundant Input ordinal has been removed. Flight sheets in combined and separate workbooks
@@ -57,7 +61,7 @@ sensor header has red text. These indicators are computed at export time.
 Window width follows data/t4.xlsx (36,860 twips); height and position follow
 data/t2.xlsx. These settings are encoded without a runtime file dependency.
 The shared CSV/XLSX headings now use Delta T, % HP, and Mark. XLSX widths follow
-PgmSpec.txt Revision 10 (Sample 50 pixels, Delta T 44, Limits 125, selected sensors 53).
+PgmSpec.txt Revision 11 (Sample 50 pixels, Delta T 44, Limits 125, selected sensors 53).
 See
 [ConditionalFormatting.md](ConditionalFormatting.md).
 
@@ -481,7 +485,9 @@ If upstream code is copied or vendored, preserve the upstream copyright and MIT 
 
 If JPI-Parser is only installed as a dependency, retain attribution/documentation of the dependency.
 
-The license for JPI2Excel itself has not yet been chosen.
+Project-specific material carries the copyright notice and All rights reserved
+statement in `COPYRIGHT`. Upstream-derived portions of `src/jpi2excel/reader.py`
+retain the original MIT license, repeated in that file and `THIRD-PARTY.md`.
 
 ## Earlier open questions (layout/policy decisions resolved above)
 

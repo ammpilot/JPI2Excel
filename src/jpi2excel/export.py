@@ -1,4 +1,7 @@
-"""Revision: 8. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 9. Shared CSV/XLSX layout, metadata, units and alarm reporting."""
 from copy import copy
 import csv
 from datetime import datetime, timedelta

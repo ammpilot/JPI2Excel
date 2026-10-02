@@ -1,4 +1,7 @@
-"""Revision: 2. Focused regressions for dates, fast recording and checksum modes."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 3. Focused regressions for dates, fast recording and checksum modes."""
 from datetime import datetime
 import tempfile
 from pathlib import Path

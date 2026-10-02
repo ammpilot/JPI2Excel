@@ -1,7 +1,10 @@
 # Extra trailing data in the legacy JPI fixtures
 
-**Revision:** 2  
-**Revision date:** 2026-09-29  
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+**Revision:** 3
+**Revision date:** 2026-10-02
 **Project:** JPI2Excel
 
 ## Resolution (2026-09-29)

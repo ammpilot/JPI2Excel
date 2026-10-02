@@ -1,4 +1,35 @@
-"""Revision: 2. Strict legacy validation around the pinned MIT JPI-Parser.
+# Project-specific additions:
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+#
+# Portions adapted from unicornlines/JPI-Parser,
+# jpi_analyzer/decoder.py, pinned commit
+# e1a34c37d3cc2194699faba92e6666300cb85e86.
+# Those upstream-derived portions retain the following license:
+#
+# MIT License
+#
+# Copyright (c) 2026 Unicornlines
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+"""Revision: 3. Strict legacy validation around the pinned MIT JPI-Parser.
 
 Binary delta unpacking and metric definitions remain upstream. This adapter
 checks boundaries/checksums, makes running totals dense, and normalizes metadata.

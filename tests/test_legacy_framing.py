@@ -1,4 +1,7 @@
-"""Revision: 1. Logical flight allocations versus physical 256-byte blocks."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 2. Logical flight allocations versus physical 256-byte blocks."""
 import hashlib
 import json
 from pathlib import Path

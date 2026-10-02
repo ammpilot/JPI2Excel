@@ -1,4 +1,7 @@
-"""Revision: 9. Export contracts and complete command-line behavior."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 10. Export contracts and complete command-line behavior."""
 from contextlib import redirect_stdout, redirect_stderr
 import csv
 import errno

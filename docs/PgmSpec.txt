@@ -1,5 +1,8 @@
-REVISION: 10
-REVISION DATE: 2026-09-30
+Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+All rights reserved.
+
+REVISION: 11
+REVISION DATE: 2026-10-02
 
 This specification supersedes older tentative output layouts.
 

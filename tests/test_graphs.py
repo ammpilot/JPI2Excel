@@ -1,4 +1,7 @@
-"""Revision: 3. Graph structure, numeric time, bounds, styling and CLI regression tests."""
+# Copyright © 2025-2026 by Alan M. Marcum, Nescorna Professional.
+# All rights reserved.
+
+"""Revision: 4. Graph structure, numeric time, bounds, styling and CLI regression tests."""
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
 import errno
